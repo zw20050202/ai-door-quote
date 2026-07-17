@@ -287,7 +287,7 @@ export default function NewQuotePage() {
 
   // 更新费用
   const updateFee = (key: string, field: string, value: any) => {
-    const newFees = fees.map(f => ({ ...f, [field]: value }));
+    const newFees = fees.map(f => f.key === key ? { ...f, [field]: value } : f);
     setFees(newFees);
     calculateTotals(products, newFees);
   };
