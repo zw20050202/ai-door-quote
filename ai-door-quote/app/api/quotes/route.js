@@ -92,7 +92,7 @@ export async function POST(request) {
       insertProduct.run(
         quoteId, p.product_category, p.profile_series_id, p.glass_config_id,
         p.color_id || null, p.hardware_id || null, p.opening_type || 'fixed',
-        p.width_mm, p.height_mm, p.area, p.quantity, p.unit_price, p.subtotal, p.sort_order
+        (p.width_mm || 0), (p.height_mm || 0), (p.area || 0), (p.quantity || 1), (p.unit_price || 0), (p.subtotal || 0), p.sort_order
       );
     }
   }
