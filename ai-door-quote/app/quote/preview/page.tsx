@@ -4,7 +4,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Button, Typography, Spin, message, Divider, Space, Tag, Row, Col } from 'antd';
 import { ArrowLeftOutlined, PrinterOutlined } from '@ant-design/icons';
 
@@ -12,13 +12,14 @@ const { Title, Text } = Typography;
 
 export default function QuotePreviewPage() {
   const router = useRouter();
-  const params = useParams();
-  const quoteId = typeof params?.id === 'string' ? params.id : (Array.isArray(params?.id) ? params.id[0] : undefined);
+    let quoteId = null;
   const [quote, setQuote] = useState(null);
   const [loading, setLoading] = useState(true);
   const [companyName, setCompanyName] = useState('AI 门窗报价助手');
 
   useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    quoteId = urlParams.get("id") || null;
     if (!quoteId) {
       message.error('缺少报价ID');
       router.push('/quotes');
