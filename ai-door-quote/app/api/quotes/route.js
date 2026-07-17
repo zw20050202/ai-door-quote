@@ -1,4 +1,4 @@
-﻿const db = require('../../../lib/db');
+const db = require('../../../lib/db');
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
