@@ -140,7 +140,7 @@ export default function QuotePreviewPage() {
         {/* 费用汇总 */}
         <div style={{ textAlign: 'right', marginBottom: 32, position: 'relative', zIndex: 1 }}>
           <div style={{ marginBottom: 4, fontSize: 13 }}>
-            <span style={{ marginRight: 40 }}>产品小计：¥{Number(quote.subtotal || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+            <span style={{ marginRight: 40 }}>产品小计：¥{Number(quote.product_total || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
             <span>运费：¥{Number(quote.shipping_fee || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
           </div>
           <div style={{ marginBottom: 4, fontSize: 13 }}>
@@ -153,10 +153,10 @@ export default function QuotePreviewPage() {
         </div>
 
         {/* 备注 */}
-        {quote.notes && (
+        {quote.remark && (
           <div style={{ marginBottom: 32, padding: 12, background: '#fffbe6', borderRadius: 6, position: 'relative', zIndex: 1 }}>
             <Text strong style={{ fontSize: 13 }}>备注：</Text>
-            <Text style={{ fontSize: 13 }}>{quote.notes}</Text>
+            <Text style={{ fontSize: 13 }}>{quote.remark}</Text>
           </div>
         )}
 
