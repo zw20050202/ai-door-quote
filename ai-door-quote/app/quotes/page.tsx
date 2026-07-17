@@ -275,10 +275,10 @@ export default function QuotesPage() {
                     {p.width_mm}×{p.height_mm}mm · {p.opening_type} · {p.area}㎡ × {p.quantity}
                   </div>
                   <div style={{ fontSize: 12, color: '#666' }}>
-                    单价: ￥{Number(p.unit_price).toFixed(2)}/㎡
+                    单价: ￥{(Number(p.unit_price) || 0).toFixed(2)}/㎡
                   </div>
                   <div style={{ color: '#1890ff', fontWeight: 'bold', marginTop: 4 }}>
-                    ￥{Number(p.subtotal).toFixed(2)}
+                    ￥{(Number(p.subtotal) || 0).toFixed(2)}
                   </div>
                 </div>
               ))}
@@ -289,7 +289,7 @@ export default function QuotesPage() {
                   {q.fees.map((f) => (
                     <div key={f.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 13 }}>
                       <Text type="secondary">{f.fee_name}</Text>
-                      <Text>￥{Number(f.amount).toFixed(2)}</Text>
+                      <Text>￥{(Number(f.amount) || 0).toFixed(2)}</Text>
                     </div>
                   ))}
                 </>

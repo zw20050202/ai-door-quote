@@ -538,7 +538,7 @@ export default function NewQuotePage() {
       dataIndex: 'area',
       key: 'area',
       width: 80,
-      render: (v: number) => <Text strong>{v.toFixed(2)}</Text>,
+      render: (v: number) => <Text strong>{(v ?? 0).toFixed(2)}</Text>,
     },
     {
       title: '数量',
@@ -577,7 +577,7 @@ export default function NewQuotePage() {
       dataIndex: 'subtotal',
       key: 'subtotal',
       width: 90,
-      render: (v: number) => <Text strong style={{ color: '#1890ff' }}>{v.toFixed(2)}</Text>,
+      render: (v: number) => <Text strong style={{ color: '#1890ff' }}>{(v ?? 0).toFixed(2)}</Text>,
     },
     {
       title: '操作',
@@ -832,26 +832,26 @@ export default function NewQuotePage() {
             <Divider plain>合计</Divider>
             <div style={{ marginBottom: 16 }}>
               <Text type="secondary">总面积：</Text>
-              <Text strong style={{ fontSize: 16 }}>{totalArea.toFixed(2)} ㎡</Text>
+              <Text strong style={{ fontSize: 16 }}>{(totalArea ?? 0).toFixed(2)} ㎡</Text>
             </div>
             <div style={{ marginBottom: 16 }}>
               <Text type="secondary">产品总价：</Text>
-              <Text strong style={{ fontSize: 16 }}>￥{productTotal.toFixed(2)}</Text>
+              <Text strong style={{ fontSize: 16 }}>￥{(productTotal ?? 0).toFixed(2)}</Text>
             </div>
             <div style={{ marginBottom: 16 }}>
               <Text type="secondary">费用合计：</Text>
-              <Text strong style={{ fontSize: 16 }}>￥{feeTotal.toFixed(2)}</Text>
+              <Text strong style={{ fontSize: 16 }}>￥{(feeTotal ?? 0).toFixed(2)}</Text>
             </div>
             {discountAmount > 0 && (
               <div style={{ marginBottom: 16 }}>
                 <Text type="secondary">优惠金额：</Text>
-                <Text strong style={{ color: '#ff4d4f', fontSize: 16 }}>- ￥{discountAmount.toFixed(2)}</Text>
+                <Text strong style={{ color: '#ff4d4f', fontSize: 16 }}>- ￥{(discountAmount ?? 0).toFixed(2)}</Text>
               </div>
             )}
             <Divider />
             <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Text strong style={{ fontSize: 18 }}>合计金额：</Text>
-              <Text strong style={{ fontSize: 28, color: '#cf1322' }}>￥{grandTotal.toFixed(2)}</Text>
+              <Text strong style={{ fontSize: 28, color: '#cf1322' }}>￥{(grandTotal ?? 0).toFixed(2)}</Text>
             </div>
 
             <Divider plain>明细</Divider>
@@ -869,7 +869,7 @@ export default function NewQuotePage() {
                   {p.area}㎡ × {p.quantity} · ￥{p.unit_price}/㎡
                 </div>
                 <div style={{ fontSize: 14, color: '#1890ff', fontWeight: 'bold', marginTop: 4 }}>
-                  ￥{p.subtotal.toFixed(2)}
+                  ￥{(Number(p.subtotal) || 0).toFixed(2)}
                 </div>
               </div>
             ))}
@@ -880,7 +880,7 @@ export default function NewQuotePage() {
                 {fees.map(f => (
                   <div key={f.key} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 13 }}>
                     <Text type="secondary">{f.fee_name}</Text>
-                    <Text>￥{f.amount.toFixed(2)}</Text>
+                    <Text>￥{(Number(f.amount) || 0).toFixed(2)}</Text>
                   </div>
                 ))}
               </>
