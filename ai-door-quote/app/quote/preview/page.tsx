@@ -124,7 +124,7 @@ export default function QuotePreviewPage() {
             </tr>
           </thead>
           <tbody>
-            {(quote.items || []).map((item, index) => (
+            {(quote.products || []).map((item, index) => (
               <tr key={index} style={{ borderBottom: '1px solid #eee' }}>
                 <td style={{ padding: '8px 6px' }}>{index + 1}</td>
                 <td style={{ padding: '8px 6px' }}>{item.product_name || item.name || '-'}</td>
