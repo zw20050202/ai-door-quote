@@ -1,4 +1,4 @@
-const db = require('../../../lib/db');
+﻿const db = require('../../../lib/db');
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
@@ -11,7 +11,6 @@ export async function GET(request) {
   const userId = userIdStr ? Number(userIdStr) : 1;
   const id = idStr ? Number(idStr) : null;
 
-  // 如果有 id 参数，返回详情
   if (id) {
     const quote = db.prepare(`
       SELECT q.*, c.name as customer_name, c.phone as customer_phone, c.address as customer_address
@@ -20,10 +19,9 @@ export async function GET(request) {
 
     const products = db.prepare('SELECT * FROM quote_products WHERE quote_id = ? ORDER BY sort_order').all(id);
     const fees = db.prepare('SELECT * FROM quote_fees WHERE quote_id = ? ORDER BY sort_order').all(id);
-    return Response.json({ success: true, data: { ...quote, products, fees } });
+    return new Response(JSON.stringify({ success: true, data: { ...quote, products, fees } }), { headers: { 'Content-Type': 'application/json; charset=utf-8' } });
   }
 
-  // 否则返回列表
   let sql = `
     SELECT q.*, c.name as customer_name, c.phone as customer_phone
     FROM quotes q
@@ -55,7 +53,7 @@ export async function GET(request) {
 
   sql += ' ORDER BY q.created_at DESC';
   const rows = db.prepare(sql).all(...params);
-  return Response.json({ success: true, data: rows });
+  return new Response(JSON.stringify({ success: true, data: rows }), { headers: { 'Content-Type': 'application/json; charset=utf-8' } });
 }
 
 export async function POST(request) {
@@ -84,7 +82,6 @@ export async function POST(request) {
 
   const quoteId = Number(quoteResult.lastInsertRowid);
 
-  // 插入产品
   if (body.products && body.products.length > 0) {
     const insertProduct = db.prepare(`
       INSERT INTO quote_products (quote_id, product_category, profile_series_id, glass_config_id, color_id, hardware_id,
@@ -100,7 +97,6 @@ export async function POST(request) {
     }
   }
 
-  // 插入费用
   if (body.fees && body.fees.length > 0) {
     const insertFee = db.prepare(`
       INSERT INTO quote_fees (quote_id, fee_name, fee_type, amount, remark, sort_order, created_at)
@@ -115,7 +111,7 @@ export async function POST(request) {
   db.prepare('UPDATE customers SET total_quotes = total_quotes + 1, last_quote_date = datetime(' + "'now'" + ') WHERE id = ?').run(body.customer_id);
 
   const quote = db.prepare('SELECT * FROM quotes WHERE id=?').get(quoteId);
-  return Response.json({ success: true, data: quote });
+  return new Response(JSON.stringify({ success: true, data: quote }), { headers: { 'Content-Type': 'application/json; charset=utf-8' } });
 }
 
 export async function PUT(request) {
@@ -132,7 +128,7 @@ export async function PUT(request) {
   }
 
   const quote = db.prepare('SELECT * FROM quotes WHERE id=?').get(body.id);
-  return Response.json({ success: true, data: quote });
+  return new Response(JSON.stringify({ success: true, data: quote }), { headers: { 'Content-Type': 'application/json; charset=utf-8' } });
 }
 
 export async function DELETE(request) {
@@ -141,5 +137,5 @@ export async function DELETE(request) {
   db.prepare('DELETE FROM quote_products WHERE quote_id=?').run(id);
   db.prepare('DELETE FROM quote_fees WHERE quote_id=?').run(id);
   db.prepare('DELETE FROM quotes WHERE id=?').run(id);
-  return Response.json({ success: true });
+  return new Response(JSON.stringify({ success: true }), { headers: { 'Content-Type': 'application/json; charset=utf-8' } });
 }

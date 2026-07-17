@@ -1,4 +1,4 @@
-const db = require('../../../lib/db');
+﻿const db = require('../../../lib/db');
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
@@ -16,7 +16,7 @@ export async function GET(request) {
 
   sql += ' ORDER BY created_at DESC';
   const rows = db.prepare(sql).all(...params);
-  return Response.json({ success: true, data: rows });
+  return new Response(JSON.stringify({ success: true, data: rows }), { headers: { 'Content-Type': 'application/json; charset=utf-8' } });
 }
 
 export async function POST(request) {
@@ -29,7 +29,7 @@ export async function POST(request) {
   `);
   const info = stmt.run(userId, body.name, body.phone, body.address || '', body.remark || '');
   const row = db.prepare('SELECT * FROM customers WHERE id = ?').get(Number(info.lastInsertRowid));
-  return Response.json({ success: true, data: row });
+  return new Response(JSON.stringify({ success: true, data: row }), { headers: { 'Content-Type': 'application/json; charset=utf-8' } });
 }
 
 export async function PUT(request) {
@@ -38,12 +38,12 @@ export async function PUT(request) {
     body.name, body.phone, body.address || '', body.remark || '', body.id
   );
   const row = db.prepare('SELECT * FROM customers WHERE id = ?').get(body.id);
-  return Response.json({ success: true, data: row });
+  return new Response(JSON.stringify({ success: true, data: row }), { headers: { 'Content-Type': 'application/json; charset=utf-8' } });
 }
 
 export async function DELETE(request) {
   const { searchParams } = new URL(request.url);
   const id = searchParams.get('id');
   db.prepare('DELETE FROM customers WHERE id = ?').run(id);
-  return Response.json({ success: true });
+  return new Response(JSON.stringify({ success: true }), { headers: { 'Content-Type': 'application/json; charset=utf-8' } });
 }

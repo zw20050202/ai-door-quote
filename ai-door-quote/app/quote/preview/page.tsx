@@ -1,11 +1,11 @@
-'use client';
+﻿'use client';
 // @ts-nocheck
 
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { Button, Typography, Spin, message, Divider, Space } from 'antd';
+import { Button, Typography, Spin, message, Divider, Space, Tag, Row, Col } from 'antd';
 import { ArrowLeftOutlined, PrinterOutlined } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
@@ -73,55 +73,41 @@ export default function QuotePreviewPage() {
         <Button icon={<ArrowLeftOutlined />} onClick={() => router.back()}>返回</Button>
         <Space>
           <Button onClick={() => router.push('/quotes')}>报价列表</Button>
-          <Button type="primary" icon={<PrinterOutlined />} onClick={handlePrint} size="large">打印 / 导出PDF</Button>
+          <Button type="primary" icon={<PrinterOutlined />} onClick={handlePrint}>打印 / 保存 PDF</Button>
         </Space>
       </div>
 
       {/* 报价单内容 */}
-      <div style={{ padding: 40, maxWidth: 800, margin: '0 auto', background: '#fff', minHeight: '100vh', position: 'relative', overflow: 'hidden' }}>
-        
+      <div style={{ maxWidth: 800, margin: '0 auto', padding: '24px 32px', position: 'relative' }}>
         {/* 状态水印 */}
-        <div style={{
-          position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%) rotate(-30deg)',
-          fontSize: 80, fontWeight: 'bold', color: watermarkColor, opacity: 0.06,
-          pointerEvents: 'none', whiteSpace: 'nowrap', zIndex: 0, letterSpacing: 12,
-        }}>{watermarkText}</div>
+        <div className="status-watermark" style={{ color: watermarkColor }}>{watermarkText}</div>
 
-        {/* 公司头部 - 品牌色条 */}
-        <div style={{ textAlign: 'center', marginBottom: 30, paddingBottom: 20, borderBottom: '4px solid #1890ff', position: 'relative', zIndex: 1 }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-            <div style={{ width: 48, height: 48, borderRadius: 8, background: 'linear-gradient(135deg, #1890ff, #096dd9)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 24 }}>门</div>
-            <Title level={3} style={{ margin: 0, color: '#1890ff', fontSize: 24, fontWeight: 700 }}>{companyName}</Title>
-          </div>
-          <Divider style={{ margin: '12px 0 16px', borderColor: '#e8e8e8' }} />
-          <Title level={4} style={{ color: '#333', margin: 0, fontSize: 22, fontWeight: 600, letterSpacing: 8 }}>报 价 单</Title>
+        {/* 公司头部 */}
+        <div style={{ textAlign: 'center', marginBottom: 32, position: 'relative', zIndex: 1 }}>
+          <Title level={3} style={{ margin: 0, fontWeight: 700 }}>{companyName}</Title>
+          <Title level={4} style={{ color: '#666', marginTop: 8, fontWeight: 400 }}>产品报价单</Title>
         </div>
 
-        {/* 报价编号 + 基本信息 */}
-        <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', fontSize: 14, position: 'relative', zIndex: 1 }}>
-          <div>
-            <div style={{ marginBottom: 8 }}>
-              <Text type="secondary">客户：</Text>
-              <Text strong style={{ fontSize: 16 }}>{quote.customer_name || '-'}</Text>
-            </div>
-            <div style={{ marginBottom: 4 }}>
-              <Text type="secondary">电话：</Text>{quote.customer_phone || '-'}
-            </div>
-            <div>
-              <Text type="secondary">地址：</Text>{quote.customer_address || '-'}
-            </div>
-          </div>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ 
-              fontSize: 22, fontWeight: 700, color: '#1890ff', 
-              background: '#f0f5ff', padding: '8px 16px', borderRadius: 6, marginBottom: 8,
-              fontFamily: 'monospace', letterSpacing: 1,
-            }}>{quote.quote_no}</div>
-            <div><Text type="secondary">日期：</Text>{quote.created_at ? quote.created_at.split('T')[0] : '-'}</div>
-            <div><Text type="secondary">状态：</Text>
-              <Tag color={getStatusColor(quote.status)} style={{ fontSize: 12 }}>{statusText(quote.status)}</Tag>
-            </div>
-          </div>
+        {/* 报价信息 */}
+        <div style={{ background: '#fafafa', padding: 16, borderRadius: 8, marginBottom: 24, position: 'relative', zIndex: 1 }}>
+          <Row gutter={[16, 8]}>
+            <Col span={8}><Text strong>报价编号：</Text><span style={{ fontFamily: 'monospace', fontSize: 14 }}>{quote.quote_no || '-'}</span></Col>
+            <Col span={8}><Text strong>客户名称：</Text>{quote.customer_name || '-'}</Col>
+            <Col span={8}><Text strong>日期：</Text>{quote.created_at ? quote.created_at.split('T')[0] : '-'}</Col>
+          </Row>
+          <Row style={{ marginTop: 8 }}>
+            <Col span={8}><Text strong>联系人：</Text>{quote.contact_name || '-'}</Col>
+            <Col span={8}><Text strong>联系电话：</Text>{quote.contact_phone || '-'}</Col>
+            <Col span={8}>
+              <Text strong>状态：</Text>
+              <Tag color={getStatusColor(quote.status)}>{statusText(quote.status)}</Tag>
+            </Col>
+          </Row>
+          {quote.shipping_address && (
+            <Row style={{ marginTop: 8 }}>
+              <Col span={24}><Text strong>安装地址：</Text>{quote.shipping_address}</Col>
+            </Row>
+          )}
         </div>
 
         {/* 产品明细表格 */}
@@ -129,103 +115,77 @@ export default function QuotePreviewPage() {
         <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 20, fontSize: 12, position: 'relative', zIndex: 1 }}>
           <thead>
             <tr style={{ background: '#f0f0f0' }}>
-              <th style={{ border: '1px solid #ddd', padding: 8, textAlign: 'center', width: 40 }}>序号</th>
-              <th style={{ border: '1px solid #ddd', padding: 8, textAlign: 'center' }}>分类</th>
-              <th style={{ border: '1px solid #ddd', padding: 8, textAlign: 'center' }}>规格(mm)</th>
-              <th style={{ border: '1px solid #ddd', padding: 8, textAlign: 'center' }}>开启方式</th>
-              <th style={{ border: '1px solid #ddd', padding: 8, textAlign: 'center', width: 60 }}>面积(㎡)</th>
-              <th style={{ border: '1px solid #ddd', padding: 8, textAlign: 'center', width: 50 }}>数量</th>
-              <th style={{ border: '1px solid #ddd', padding: 8, textAlign: 'right', width: 80 }}>单价(￥)</th>
-              <th style={{ border: '1px solid #ddd', padding: 8, textAlign: 'right', width: 90 }}>小计(￥)</th>
+              <th style={{ padding: '8px 6px', textAlign: 'left', borderBottom: '2px solid #ddd' }}>序号</th>
+              <th style={{ padding: '8px 6px', textAlign: 'left', borderBottom: '2px solid #ddd' }}>产品名称</th>
+              <th style={{ padding: '8px 6px', textAlign: 'left', borderBottom: '2px solid #ddd' }}>规格型号</th>
+              <th style={{ padding: '8px 6px', textAlign: 'right', borderBottom: '2px solid #ddd' }}>数量</th>
+              <th style={{ padding: '8px 6px', textAlign: 'right', borderBottom: '2px solid #ddd' }}>单价（元）</th>
+              <th style={{ padding: '8px 6px', textAlign: 'right', borderBottom: '2px solid #ddd' }}>金额（元）</th>
             </tr>
           </thead>
           <tbody>
-            {quote.products && quote.products.map((p, i) => (
-              <tr key={p.id}>
-                <td style={{ border: '1px solid #ddd', padding: 8, textAlign: 'center' }}>{i + 1}</td>
-                <td style={{ border: '1px solid #ddd', padding: 8, textAlign: 'center' }}>{p.product_category}</td>
-                <td style={{ border: '1px solid #ddd', padding: 8, textAlign: 'center' }}>{p.width_mm}×{p.height_mm}</td>
-                <td style={{ border: '1px solid #ddd', padding: 8, textAlign: 'center' }}>{p.opening_type}</td>
-                <td style={{ border: '1px solid #ddd', padding: 8, textAlign: 'right' }}>{p.area}</td>
-                <td style={{ border: '1px solid #ddd', padding: 8, textAlign: 'center' }}>{p.quantity}</td>
-                <td style={{ border: '1px solid #ddd', padding: 8, textAlign: 'right' }}>{Number(p.unit_price).toFixed(2)}</td>
-                <td style={{ border: '1px solid #ddd', padding: 8, textAlign: 'right', fontWeight: 'bold' }}>{Number(p.subtotal).toFixed(2)}</td>
+            {(quote.items || []).map((item, index) => (
+              <tr key={index} style={{ borderBottom: '1px solid #eee' }}>
+                <td style={{ padding: '8px 6px' }}>{index + 1}</td>
+                <td style={{ padding: '8px 6px' }}>{item.product_name || item.name || '-'}</td>
+                <td style={{ padding: '8px 6px' }}>{item.specification || '-'}</td>
+                <td style={{ padding: '8px 6px', textAlign: 'right' }}>{Number(item.quantity || 0).toLocaleString()}</td>
+                <td style={{ padding: '8px 6px', textAlign: 'right' }}>¥{Number(item.unit_price || 0).toFixed(2)}</td>
+                <td style={{ padding: '8px 6px', textAlign: 'right' }}>¥{Number(item.amount || 0).toFixed(2)}</td>
               </tr>
             ))}
           </tbody>
         </table>
 
-        {/* 费用明细 */}
-        {quote.fees && quote.fees.length > 0 && (
-          <>
-            <Title level={5} style={{ position: 'relative', zIndex: 1 }}>费用明细</Title>
-            <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 20, fontSize: 12, position: 'relative', zIndex: 1 }}>
-              <thead>
-                <tr style={{ background: '#f0f0f0' }}>
-                  <th style={{ border: '1px solid #ddd', padding: 8, textAlign: 'center' }}>费用名称</th>
-                  <th style={{ border: '1px solid #ddd', padding: 8, textAlign: 'center' }}>计费方式</th>
-                  <th style={{ border: '1px solid #ddd', padding: 8, textAlign: 'right' }}>金额(￥)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {quote.fees.map((f) => (
-                  <tr key={f.id}>
-                    <td style={{ border: '1px solid #ddd', padding: 8 }}>{f.fee_name}</td>
-                    <td style={{ border: '1px solid #ddd', padding: 8, textAlign: 'center' }}>{f.fee_type === 'per_sqm' ? '按平米' : '固定金额'}</td>
-                    <td style={{ border: '1px solid #ddd', padding: 8, textAlign: 'right' }}>{Number(f.amount).toFixed(2)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </>
-        )}
-
-        {/* 合计区域 */}
-        <div style={{ textAlign: 'right', marginBottom: 30, padding: 16, background: '#fafafa', borderRadius: 4, border: '1px solid #e8e8e8', position: 'relative', zIndex: 1 }}>
-          <div style={{ fontSize: 13, marginBottom: 4 }}>产品总价: <Text strong>￥{Number(quote.product_total).toFixed(2)}</Text></div>
-          <div style={{ fontSize: 13, marginBottom: 4 }}>费用合计: <Text strong>￥{Number(quote.fee_total).toFixed(2)}</Text></div>
-          {quote.discount_amount > 0 && (
-            <div style={{ fontSize: 13, marginBottom: 4 }}>优惠: <Text strong style={{ color: '#ff4d4f' }}>-￥{Number(quote.discount_amount).toFixed(2)}</Text></div>
-          )}
+        {/* 费用汇总 */}
+        <div style={{ textAlign: 'right', marginBottom: 32, position: 'relative', zIndex: 1 }}>
+          <div style={{ marginBottom: 4, fontSize: 13 }}>
+            <span style={{ marginRight: 40 }}>产品小计：¥{Number(quote.subtotal || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+            <span>运费：¥{Number(quote.shipping_fee || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+          </div>
+          <div style={{ marginBottom: 4, fontSize: 13 }}>
+            <span>税费：¥{Number(quote.tax_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+          </div>
           <Divider style={{ margin: '8px 0' }} />
-          <div style={{ fontSize: 22, color: '#cf1322', marginTop: 4, fontWeight: 700 }}>
-            合计金额: <strong>￥{Number(quote.grand_total).toLocaleString()}</strong>
+          <div style={{ fontSize: 18, fontWeight: 700, color: '#cf1322' }}>
+            合计：¥{Number(quote.grand_total || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
           </div>
         </div>
 
-        {/* 其他信息 */}
-        <div style={{ display: 'flex', gap: 30, fontSize: 13, marginBottom: 24, padding: 12, background: '#fafafa', borderRadius: 4, border: '1px solid #e8e8e8', position: 'relative', zIndex: 1 }}>
-          <div><Text strong>付款方式：</Text>{quote.payment_method || '-'}</div>
-          <div><Text strong>交货天数：</Text>{quote.delivery_days || 15}天</div>
-          <div><Text strong>质保年限：</Text>{quote.warranty_years || 5}年</div>
-          <div><Text strong>报价有效期：</Text>{quote.valid_days || 30}天</div>
-        </div>
-
-        {quote.remark && (
-          <div style={{ fontSize: 13, marginBottom: 24, position: 'relative', zIndex: 1 }}>
-            <Text strong>备注：</Text>{quote.remark}
+        {/* 备注 */}
+        {quote.notes && (
+          <div style={{ marginBottom: 32, padding: 12, background: '#fffbe6', borderRadius: 6, position: 'relative', zIndex: 1 }}>
+            <Text strong style={{ fontSize: 13 }}>备注：</Text>
+            <Text style={{ fontSize: 13 }}>{quote.notes}</Text>
           </div>
         )}
+
+        {/* 底部说明 */}
+        <div style={{ borderTop: '1px solid #eee', paddingTop: 16, fontSize: 11, color: '#999', position: 'relative', zIndex: 1 }}>
+          <p style={{ margin: '4px 0' }}>本报价单由 {companyName} 自动生成，有效期为 {quote.valid_days || 7} 天。</p>
+          <p style={{ margin: '4px 0' }}>如需修改或取消，请及时联系您的客户经理。</p>
+        </div>
 
         {/* 签字区域 */}
-        <div style={{ marginTop: 60, display: 'flex', justifyContent: 'space-between', fontSize: 13, position: 'relative', zIndex: 1 }}>
-          <div>
-            <div style={{ marginBottom: 40 }}><Text type="secondary">甲方（盖章）：</Text></div>
-            <div>经办人签字：_________________</div>
-            <div>日  期：_________________</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 48, position: 'relative', zIndex: 1 }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ borderBottom: '1px solid #333', width: 160, paddingBottom: 4, marginBottom: 4 }}>客户签字</div>
+            <Text type="secondary" style={{ fontSize: 11 }}>日期：</Text>
           </div>
-          <div>
-            <div style={{ marginBottom: 40 }}><Text type="secondary">乙方（盖章）：</Text></div>
-            <div>经办人签字：_________________</div>
-            <div>日  期：_________________</div>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ borderBottom: '1px solid #333', width: 160, paddingBottom: 4, marginBottom: 4 }}>公司盖章</div>
+            <Text type="secondary" style={{ fontSize: 11 }}>日期：</Text>
           </div>
         </div>
+      </div>
 
-        {/* 底部 */}
-        <div style={{ textAlign: 'center', fontSize: 11, color: '#999', marginTop: 40, paddingTop: 16, borderTop: '1px solid #eee', position: 'relative', zIndex: 1 }}>
-          本报价单由 {companyName} 生成 · 本报价单仅供参考，最终以双方确认为准
-        </div>
+      {/* 打印按钮 - 桌面端显示 */}
+      <div style={{ textAlign: 'center', padding: '24px 0', background: '#f5f5f5', position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 1000, display: 'none' }} data-no-print>
+        <Button type="primary" size="large" icon={<PrinterOutlined />} onClick={handlePrint} style={{ height: 48, fontSize: 16, borderRadius: 8, width: '80%', maxWidth: 320 }}>
+          打印 / 保存 PDF
+        </Button>
       </div>
     </div>
   );
 }
+
