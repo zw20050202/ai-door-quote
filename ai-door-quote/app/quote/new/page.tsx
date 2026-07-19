@@ -167,6 +167,8 @@ export default function NewQuotePage() {
   // 编辑弹窗状态
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   // 加载数据和设置
   useEffect(() => {
@@ -421,7 +423,55 @@ export default function NewQuotePage() {
     }
   };
 
-  // ========== 产品表格列（ERP 风格，只读展示） ==========
+  // 预览报价单
+  const handlePreview = () => {
+    if (!customerId) {
+      message.warning('请选择客户');
+      return;
+    }
+    if (products.length === 0) {
+      message.warning('请至少添加一个产品');
+      return;
+    }
+    setShowPreviewModal(true);
+  };
+
+  // 导出 PDF
+  const handleExportPDF = async () => {
+    if (!customerId) {
+      message.warning('请选择客户');
+      return;
+    }
+    if (products.length === 0) {
+      message.warning('请至少添加一个产品');
+      return;
+    }
+    setPdfLoading(true);
+    setShowPreviewModal(true);
+    setTimeout(() => {
+      const el = document.getElementById('preview-pdf-content');
+      if (el) {
+        import('html2pdf.js').then(({ default: html2pdf }) => {
+          const opt: any = {
+            margin: [10, 10, 10, 10],
+            filename: '报价单_' + (customerName || '未命名') + '_' + new Date().toISOString().slice(0, 10) + '.pdf',
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+          };
+          html2pdf().set(opt).from(el).save().finally(() => setPdfLoading(false));
+        }).catch(() => {
+          message.error('PDF 生成失败');
+          setPdfLoading(false);
+        });
+      } else {
+        message.error('无法找到预览内容');
+        setPdfLoading(false);
+      }
+    }, 500);
+  };
+
+  // ========== 产品表格列（ERP 风格，只读展示）==========
   const displayProductColumns = [
     {
       title: '序号',
@@ -667,10 +717,10 @@ export default function NewQuotePage() {
         </Button>
         <Row gutter={8}>
           <Col span={12}>
-            <Button block icon={<FileTextOutlined />} style={{ height: 36 }}>预览报价单</Button>
+            <Button block icon={<FileTextOutlined />} style={{ height: 36 }} onClick={handlePreview}>预览报价单</Button>
           </Col>
           <Col span={12}>
-            <Button block icon={<ImportOutlined />} style={{ height: 36 }}>导出报价单</Button>
+            <Button block icon={<ImportOutlined />} loading={pdfLoading} style={{ height: 36 }} onClick={handleExportPDF}>导出报价单</Button>
           </Col>
         </Row>
 
@@ -1166,6 +1216,104 @@ export default function NewQuotePage() {
           <Form.Item label="安装地址"><Input value={newCustomerAddress} onChange={e => setNewCustomerAddress(e.target.value)} placeholder="请输入安装地址" /></Form.Item>
         </Form>
       </Modal>
+        {/* ===== 预览报价单 Modal ===== */}
+        <Modal
+          title={null}
+          open={showPreviewModal}
+          onCancel={() => setShowPreviewModal(false)}
+          footer={[
+            <Button key="print" icon={<SaveOutlined />} onClick={() => window.print()} disabled={pdfLoading}>打印</Button>,
+            <Button key="export" icon={<ImportOutlined />} loading={pdfLoading} onClick={handleExportPDF}>导出 PDF</Button>,
+            <Button key="close" type="primary" onClick={() => setShowPreviewModal(false)}>关闭</Button>,
+          ]}
+          width={860}
+          style={{ top: 20 }}
+          bodyStyle={{ maxHeight: "80vh", overflowY: "auto" }}
+        >
+          <div id="preview-pdf-content" style={{ padding: "0 8px" }}>
+            <div style={{ textAlign: "center", marginBottom: 24 }}>
+              <Title level={3} style={{ margin: 0, fontWeight: 700 }}>产品报价单</Title>
+            </div>
+
+            <Card size="small" title="客户信息" style={{ marginBottom: 16 }}>
+              <Row gutter={16}>
+                <Col span={8}><Text strong>客户姓名：</Text>{customerName}</Col>
+                <Col span={8}><Text strong>联系电话：</Text>{customerPhone}</Col>
+                <Col span={8}><Text strong>安装地址：</Text>{customerAddress || "--"}</Col>
+              </Row>
+            </Card>
+
+            <Card size="small" title="产品明细" style={{ marginBottom: 16 }}>
+              <Table
+                dataSource={products}
+                columns={[
+                  { title: "序号", key: "idx", width: 50, render: (_, __, i) => i + 1 },
+                  { title: "类别", dataIndex: "product_category", key: "cat", width: 90 },
+                  { title: "系列", key: "series", width: 110, render: (r) => r.profile_series?.name || "--" },
+                  { title: "玻璃", key: "glass", width: 100, render: (r) => r.glass?.name || "--" },
+                  { title: "颜色", key: "color", width: 80, render: (r) => r.color?.name || "--" },
+                  { title: "尺寸(mm)", key: "size", width: 110, render: (r) => r.width_mm + "x" + r.height_mm },
+                  { title: "面积(m²)", dataIndex: "area", key: "area", width: 80, render: (v) => v?.toFixed(2) },
+                  { title: "数量", dataIndex: "quantity", key: "qty", width: 60 },
+                  { title: "单价(¥)", dataIndex: "unit_price", key: "price", width: 80, render: (v) => v?.toFixed(2) },
+                  { title: "金额(¥)", dataIndex: "subtotal", key: "amount", width: 90, render: (v) => v?.toFixed(2) },
+                ]}
+                pagination={false}
+                size="small"
+                rowKey="key"
+                summary={() => (
+                  <Table.Summary fixed>
+                    <Table.Summary.Row style={{ background: "#fafafa", fontWeight: 600 }}>
+                      <Table.Summary.Cell index={0} colSpan={8}>合计</Table.Summary.Cell>
+                      <Table.Summary.Cell index={1}>{productTotal.toFixed(2)}</Table.Summary.Cell>
+                    </Table.Summary.Row>
+                  </Table.Summary>
+                )}
+              />
+            </Card>
+
+            <Card size="small" title="附加费用" style={{ marginBottom: 16 }}>
+              <Table
+                dataSource={fees}
+                columns={[
+                  { title: "费用名称", dataIndex: "fee_name", key: "name", width: 120 },
+                  { title: "类型", dataIndex: "fee_type", key: "type", width: 80, render: (v) => v==="fixed"?"固定":v==="per_sqm"?"按㎡":v },
+                  { title: "金额(¥)", dataIndex: "amount", key: "amount", width: 100, render: (v) => v?.toFixed(2) },
+                ]}
+                pagination={false}
+                size="small"
+                rowKey="key"
+                summary={() => (
+                  <Table.Summary fixed>
+                    <Table.Summary.Row style={{ background: "#fafafa", fontWeight: 600 }}>
+                      <Table.Summary.Cell index={0} colSpan={2}>小计</Table.Summary.Cell>
+                      <Table.Summary.Cell index={0} colSpan={2}>{feeTotal.toFixed(2)}</Table.Summary.Cell>
+                    </Table.Summary.Row>
+                  </Table.Summary>
+                )}
+              />
+            </Card>
+
+            <div style={{ marginBottom: 16, padding: "12px 0", borderTop: "1px solid #f0f0f0" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}><Text>产品金额：</Text><Text>¥{productTotal.toFixed(2)}</Text></div>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}><Text>附加费用：</Text><Text>¥{feeTotal.toFixed(2)}</Text></div>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, color: "#52c41a" }}><Text>优惠：</Text><Text>- ¥{discountAmount.toFixed(2)}</Text></div>
+              <Divider style={{ margin: "12px 0" }} />
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 18, fontWeight: 600, color: "#cf1322" }}><Text>合计金额：</Text><Text>¥{grandTotal.toFixed(2)}</Text></div>
+              <div style={{ fontSize: 12, color: "#666", marginTop: 8 }}>大写：{numberToChinese(grandTotal)}</div>
+            </div>
+
+            {remark && (<Card size="small" title="备注" style={{ marginBottom: 16 }}><Text>{remark}</Text></Card>)}
+
+            <div style={{ fontSize: 12, color: "#999", lineHeight: 2, padding: "12px 0", borderTop: "1px solid #eee" }}>
+              <div>付款方式：{paymentMethod || "--"}</div>
+              <div>交货周期：{deliveryDays}天</div>
+              <div>质保年限：{warrantyYears}年</div>
+              <div>报价有效期：{validDays}天</div>
+            </div>
+          </div>
+        </Modal>
+
     </div>
   );
 }

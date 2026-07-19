@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, Typography, Spin, message, Divider, Space, Tag, Row, Col } from 'antd';
-import { ArrowLeftOutlined, PrinterOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, PrinterOutlined, ImportOutlined } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
 
@@ -16,6 +16,7 @@ export default function QuotePreviewPage() {
   const [quote, setQuote] = useState(null);
   const [loading, setLoading] = useState(true);
   const [companyName, setCompanyName] = useState('AI 门窗报价助手');
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -50,6 +51,33 @@ export default function QuotePreviewPage() {
     window.print();
   };
 
+  // 导出 PDF
+  const handleExportPDF = async () => {
+    if (!quote) return;
+    setPdfLoading(true);
+    setTimeout(() => {
+      const el = document.querySelector('.quote-print-area');
+      if (el) {
+        import('html2pdf.js').then(({ default: html2pdf }) => {
+          const opt: any = {
+            margin: [10, 10, 10, 10],
+            filename: (quote.quote_no || '报价单') + '.pdf',
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+          };
+          html2pdf().set(opt).from(el as any).save().finally(() => setPdfLoading(false));
+        }).catch(() => {
+          message.error('PDF 生成失败');
+          setPdfLoading(false);
+        });
+      } else {
+        message.error('无法找到报价内容');
+        setPdfLoading(false);
+      }
+    }, 300);
+  };
+
   const statusText = (s) => {
     const map = { draft: '草稿', sent: '已发送', deal: '成交', rejected: '已拒绝', expired: '已过期' };
     return map[s] || s;
@@ -74,7 +102,8 @@ export default function QuotePreviewPage() {
         <Button icon={<ArrowLeftOutlined />} onClick={() => router.back()}>返回</Button>
         <Space>
           <Button onClick={() => router.push('/quotes')}>报价列表</Button>
-          <Button type="primary" icon={<PrinterOutlined />} onClick={handlePrint}>打印 / 保存 PDF</Button>
+          <Button type="primary" icon={<PrinterOutlined />} onClick={handlePrint}>打印</Button>
+          <Button icon={<ImportOutlined />} loading={pdfLoading} onClick={handleExportPDF}>导出 PDF</Button>
         </Space>
       </div>
 
@@ -207,8 +236,11 @@ export default function QuotePreviewPage() {
 
       {/* 打印按钮 - 桌面端显示 */}
       <div style={{ textAlign: 'center', padding: '24px 0', background: '#f5f5f5', position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 1000, display: 'none' }} data-no-print>
-        <Button type="primary" size="large" icon={<PrinterOutlined />} onClick={handlePrint} style={{ height: 48, fontSize: 16, borderRadius: 8, width: '80%', maxWidth: 320 }}>
-          打印 / 保存 PDF
+        <Button type="primary" size="large" icon={<PrinterOutlined />} onClick={handlePrint} style={{ height: 48, fontSize: 16, borderRadius: 8, width: '80%', maxWidth: 320, marginBottom: 8 }}>
+          打印
+        </Button>
+        <Button size="large" icon={<ImportOutlined />} loading={pdfLoading} onClick={handleExportPDF} style={{ height: 48, fontSize: 16, borderRadius: 8, width: '80%', maxWidth: 320 }}>
+          导出 PDF
         </Button>
       </div>
     </div>
