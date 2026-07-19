@@ -1,13 +1,14 @@
-﻿'use client';
+'use client'
 // @ts-nocheck
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Card, Button, Input, Select, Form, Row, Col, Table, InputNumber, Space, message, Typography, Divider, Modal, Tag,
+  Card, Button, Input, Select, Form, Row, Col, Table, InputNumber, Space, message, Typography, Divider, Modal, Tag, Avatar,
 } from 'antd';
 import {
   ArrowLeftOutlined, PlusOutlined, DeleteOutlined, CheckOutlined, ReloadOutlined, SaveOutlined,
+  EditOutlined, UserOutlined, PhoneOutlined, EnvironmentOutlined, ImportOutlined, FileTextOutlined,
 } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
@@ -66,6 +67,7 @@ interface QuoteProduct {
   glass?: GlassConfig;
   color?: ColorOption;
   hardware?: Hardware;
+  remark?: string;
 }
 
 interface QuoteFee {
@@ -75,6 +77,44 @@ interface QuoteFee {
   amount: number;
   remark: string;
 }
+
+
+// 金额转中文大写
+const numberToChinese = (num: number): string => {
+  if (num === 0) return '零';
+  const digits = ['零','壹','贰','叁','肆','伍','陆','柒','捌','玖'];
+  const units = ['','拾','佰','仟'];
+  const bigUnits = ['','万','亿','兆'];
+  const intPart = Math.floor(num);
+  const decPart = Math.round((num - intPart) * 100);
+  let result = '';
+
+  if (intPart === 0) {
+    result = '零';
+  } else {
+    let str = String(intPart);
+    let len = str.length;
+    let resultInt = '';
+    let prevZero = false;
+    for (let i = 0; i < len; i++) {
+      const d = parseInt(str[i]);
+      const pos = len - 1 - i;
+      if (d === 0) {
+        if (!prevZero) resultInt += '零';
+        prevZero = true;
+      } else {
+        prevZero = false;
+        resultInt += digits[d] + units[pos % 4];
+      }
+      if ((pos % 4) === 0) {
+        resultInt += bigUnits[Math.floor(pos / 4)];
+      }
+    }
+    result = resultInt;
+  }
+
+  return '人民币 ' + result + '元' + (decPart > 0 ? digits[Math.floor(decPart / 10)] + '角' + (decPart % 10 > 0 ? digits[decPart % 10] + '分' : '') : '整');
+};
 
 export default function NewQuotePage() {
   const router = useRouter();
@@ -102,6 +142,7 @@ export default function NewQuotePage() {
 
   // 折扣
   const [discountAmount, setDiscountAmount] = useState(0);
+  const [discountType, setDiscountType] = useState('fixed'); // 'fixed' or 'percent'
 
   // 其他信息
   const [paymentMethod, setPaymentMethod] = useState('');
@@ -123,6 +164,10 @@ export default function NewQuotePage() {
   const [feeTotal, setFeeTotal] = useState(0);
   const [grandTotal, setGrandTotal] = useState(0);
 
+  // 编辑弹窗状态
+  const [editingKey, setEditingKey] = useState<string | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+
   // 加载数据和设置
   useEffect(() => {
     Promise.all([
@@ -139,7 +184,6 @@ export default function NewQuotePage() {
       setHardwares(hwRes.data || []);
     }).catch(err => console.error('加载数据失败:', err));
 
-    // 加载设置
     try {
       const settings = localStorage.getItem('quote_settings');
       if (settings) {
@@ -155,9 +199,7 @@ export default function NewQuotePage() {
         if (s.warrantyYears) setWarrantyYears(s.warrantyYears);
         if (s.validDays) setValidDays(s.validDays);
       }
-    } catch (e) {
-      // ignore
-    }
+    } catch (e) { /* ignore */ }
   }, []);
 
   // 选择客户
@@ -171,7 +213,7 @@ export default function NewQuotePage() {
     }
   };
 
-  // 过滤客户（用于搜索）
+  // 过滤客户
   const filteredCustomers = customers.filter(c => {
     if (!customerSearch) return true;
     const s = customerSearch.toLowerCase();
@@ -181,18 +223,10 @@ export default function NewQuotePage() {
   // 计算单价
   const calcUnitPrice = (product: QuoteProduct): number => {
     let price = 0;
-    if (product.profile_series) {
-      price += product.profile_series.base_price;
-    }
-    if (product.glass) {
-      price += product.glass.price_add;
-    }
-    if (product.color) {
-      price += product.color.price_add;
-    }
-    if (product.hardware) {
-      price += product.hardware.price_per_unit;
-    }
+    if (product.profile_series) price += product.profile_series.base_price;
+    if (product.glass) price += product.glass.price_add;
+    if (product.color) price += product.color.price_add;
+    if (product.hardware) price += product.hardware.price_per_unit;
     return Math.round(price * 100) / 100;
   };
 
@@ -231,14 +265,12 @@ export default function NewQuotePage() {
       if (p.key !== key) return p;
       const updated = { ...p, [field]: value };
 
-      // 自动计算面积
       if (field === 'width_mm' || field === 'height_mm') {
         const w = updated.width_mm || 0;
         const h = updated.height_mm || 0;
         updated.area = Math.round((w / 1000) * (h / 1000) * 100) / 100;
       }
 
-      // 自动计算单价
       if (['profile_series_id', 'glass_config_id', 'color_id', 'hardware_id'].includes(field)) {
         updated.profile_series = field === 'profile_series_id'
           ? (profiles.find(x => x.id === value) || updated.profile_series)
@@ -255,9 +287,7 @@ export default function NewQuotePage() {
         updated.unit_price = calcUnitPrice(updated);
       }
 
-      // 自动计算小计
       updated.subtotal = Math.round(updated.area * updated.quantity * updated.unit_price * 100) / 100;
-
       return updated;
     });
     setProducts(newProducts);
@@ -273,15 +303,16 @@ export default function NewQuotePage() {
       prodTotal += p.subtotal;
     }
     setTotalArea(Math.round(area * 100) / 100);
-
     let feeTotal = 0;
-    for (const f of currentFees) {
-      feeTotal += f.amount;
-    }
+    for (const f of currentFees) feeTotal += f.amount;
     setFeeTotal(Math.round(feeTotal * 100) / 100);
-
     setProductTotal(Math.round(prodTotal * 100) / 100);
-    const gt = Math.max(0, prodTotal + feeTotal - discountAmount);
+    // 根据优惠方式计算最终金额
+    let actualDiscount = discountAmount;
+    if (discountType === 'percent' && discountAmount > 0) {
+      actualDiscount = Math.round((prodTotal + feeTotal) * (1 - discountAmount / 100) * 100) / 100;
+    }
+    const gt = Math.max(0, prodTotal + feeTotal - actualDiscount);
     setGrandTotal(Math.round(gt * 100) / 100);
   };
 
@@ -306,7 +337,20 @@ export default function NewQuotePage() {
     calculateTotals(products, newFees);
   };
 
-  // 保存报价（草稿或正式）
+  // 打开编辑弹窗
+  const openEditModal = (key: string) => {
+    setEditingKey(key);
+    setShowEditModal(true);
+  };
+
+  // 保存编辑
+  const saveEdit = () => {
+    // updateProduct already updates the product in real-time
+    setShowEditModal(false);
+    setEditingKey(null);
+  };
+
+  // 保存报价
   const handleSubmit = async (isDraft: boolean = false) => {
     if (!customerId) {
       message.warning('请选择或添加客户');
@@ -362,16 +406,10 @@ export default function NewQuotePage() {
       const result = await res.json();
       if (result.success) {
         setSavedQuoteNo(result.data.quote_no);
-        if (isDraft) {
-          message.success('草稿已保存！报价编号：' + result.data.quote_no);
-        } else {
-          message.success('报价创建成功！报价编号：' + result.data.quote_no);
-        }
-        // 刷新客户列表
+        message.success(isDraft ? '草稿已保存！报价编号：' + result.data.quote_no : '报价创建成功！报价编号：' + result.data.quote_no);
         const custRes = await fetch('/api/customers?userId=1');
         const custData = await custRes.json();
         setCustomers(custData.data);
-        // 跳转到报价历史
         setTimeout(() => router.push('/quotes'), 500);
       } else {
         message.error('创建失败');
@@ -383,250 +421,132 @@ export default function NewQuotePage() {
     }
   };
 
-  // 产品表格列定义
-  const productColumns = [
+  // ========== 产品表格列（ERP 风格，只读展示） ==========
+  const displayProductColumns = [
     {
-      title: '产品分类',
-      dataIndex: 'product_category',
-      key: 'product_category',
-      width: 100,
+      title: '序号',
+      width: 45,
       render: (_: any, __: any, index: number) => (
-        <Select
-          value={products[index]?.product_category}
-          onChange={(v) => updateProduct(products[index]?.key, 'product_category', v)}
-          size="small"
-          style={{ width: '100%' }}
-        >
-          <Option value="平开窗">平开窗</Option>
-          <Option value="推拉门">推拉门</Option>
-          <Option value="阳光房">阳光房</Option>
-          <Option value="门">门</Option>
-          <Option value="隔断">隔断</Option>
-        </Select>
+        <Text strong style={{ color: '#999' }}>{index + 1}</Text>
       ),
     },
     {
-      title: '型材系列',
-      dataIndex: 'profile_series_id',
-      key: 'profile_series_id',
-      width: 130,
-      render: (v: number, record: QuoteProduct) => (
-        <Select
-          value={v}
-          onChange={(val) => updateProduct(record.key, 'profile_series_id', val)}
-          placeholder="选择型材"
-          size="small"
-          style={{ width: '100%' }}
-        >
-          {profiles.map(p => (
-            <Option key={p.id} value={p.id}>{p.name}（￥{p.base_price}/㎡）</Option>
-          ))}
-        </Select>
-      ),
-    },
-    {
-      title: '玻璃',
-      dataIndex: 'glass_config_id',
-      key: 'glass_config_id',
-      width: 140,
-      render: (v: number, record: QuoteProduct) => (
-        <Select
-          value={v}
-          onChange={(val) => updateProduct(record.key, 'glass_config_id', val)}
-          placeholder="选择玻璃"
-          size="small"
-          style={{ width: '100%' }}
-        >
-          {glassConfigs.map(g => (
-            <Option key={g.id} value={g.id}>{g.name}（+￥{g.price_add}）</Option>
-          ))}
-        </Select>
-      ),
-    },
-    {
-      title: '颜色',
-      dataIndex: 'color_id',
-      key: 'color_id',
+      title: '产品',
       width: 120,
-      render: (v: number, record: QuoteProduct) => (
-        <Select
-          value={v}
-          onChange={(val) => updateProduct(record.key, 'color_id', val)}
-          placeholder="选择颜色"
-          size="small"
-          style={{ width: '100%' }}
-        >
-          <Option value={0}>白色（不加价）</Option>
-          {colors.map(c => (
-            <Option key={c.id} value={c.id}>{c.name}（+￥{c.price_add}）</Option>
-          ))}
-        </Select>
+      render: (_: any, record: QuoteProduct, index: number) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{
+            width: 40, height: 40, borderRadius: 4, background: '#f0f5ff',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            border: '1px solid #d6e4ff', flexShrink: 0,
+          }}>
+            <FileTextOutlined style={{ fontSize: 18, color: '#1890ff' }} />
+          </div>
+          <div>
+            <Text strong style={{ fontSize: 13 }}>{record.product_category}</Text>
+            <div style={{ fontSize: 11, color: '#999', marginTop: 2 }}>
+              {record.opening_type}
+            </div>
+          </div>
+        </div>
       ),
     },
     {
-      title: '五金件',
-      dataIndex: 'hardware_id',
-      key: 'hardware_id',
-      width: 120,
-      render: (v: number, record: QuoteProduct) => (
-        <Select
-          value={v}
-          onChange={(val) => updateProduct(record.key, 'hardware_id', val)}
-          placeholder="选择五金"
-          size="small"
-          style={{ width: '100%' }}
-        >
-          <Option value={0}>无（不加价）</Option>
-          {hardwares.map(h => (
-            <Option key={h.id} value={h.id}>{h.name}（+￥{h.price_per_unit}）</Option>
-          ))}
-        </Select>
-      ),
-    },
-    {
-      title: '开启方式',
-      dataIndex: 'opening_type',
-      key: 'opening_type',
-      width: 100,
-      render: (v: string, record: QuoteProduct) => (
-        <Select
-          value={v}
-          onChange={(val) => updateProduct(record.key, 'opening_type', val)}
-          size="small"
-          style={{ width: '100%' }}
-        >
-          <Option value="固定">固定</Option>
-          <Option value="平开">平开</Option>
-          <Option value="推拉">推拉</Option>
-        </Select>
-      ),
-    },
-    {
-      title: '宽(mm)',
-      dataIndex: 'width_mm',
-      key: 'width_mm',
+      title: '尺寸(mm)',
       width: 90,
-      render: (v: number, record: QuoteProduct) => (
-        <InputNumber
-          value={v}
-          onChange={(val) => updateProduct(record.key, 'width_mm', val)}
-          min={100}
-          max={6000}
-          size="small"
-          style={{ width: '100%' }}
-        />
+      render: (_: any, record: QuoteProduct) => (
+        <Text style={{ fontSize: 12 }}>
+          {(record.width_mm ?? '--') + '\u00d7' + (record.height_mm ?? '--')}
+        </Text>
       ),
     },
     {
-      title: '高(mm)',
-      dataIndex: 'height_mm',
-      key: 'height_mm',
-      width: 90,
-      render: (v: number, record: QuoteProduct) => (
-        <InputNumber
-          value={v}
-          onChange={(val) => updateProduct(record.key, 'height_mm', val)}
-          min={100}
-          max={4000}
-          size="small"
-          style={{ width: '100%' }}
-        />
-      ),
-    },
-    {
-      title: '面积(㎡)',
-      dataIndex: 'area',
-      key: 'area',
-      width: 80,
-      render: (v: number) => <Text strong>{(v ?? 0).toFixed(2)}</Text>,
-    },
-    {
-      title: '数量',
-      dataIndex: 'quantity',
-      key: 'quantity',
+      title: '面积(m\u00b2)',
       width: 70,
-      render: (v: number, record: QuoteProduct) => (
-        <InputNumber
-          value={v}
-          onChange={(val) => updateProduct(record.key, 'quantity', val)}
-          min={1}
-          max={100}
-          size="small"
-          style={{ width: '100%' }}
-        />
+      render: (_: any, record: QuoteProduct) => (
+        <Text strong style={{ fontSize: 12 }}>{(record.area ?? 0).toFixed(2)}</Text>
       ),
     },
     {
-      title: '单价(￥)',
-      dataIndex: 'unit_price',
-      key: 'unit_price',
-      width: 90,
-      render: (v: number, record: QuoteProduct) => (
-        <InputNumber
-          value={v}
-          onChange={(val) => updateProduct(record.key, 'unit_price', val)}
-          min={0}
-          precision={2}
-          size="small"
-          style={{ width: '100%' }}
-        />
+      title: '配置',
+      width: 180,
+      render: (_: any, record: QuoteProduct) => {
+        const parts: string[] = [];
+        if (record.profile_series) parts.push(record.profile_series.name);
+        if (record.glass) parts.push(record.glass.name);
+        if (record.color) parts.push(record.color.name);
+        return <Text style={{ fontSize: 11, color: '#666' }}>{parts.join(' / ') || '未配置'}</Text>;
+      },
+    },
+    {
+      title: '单价(\u00a5)',
+      width: 75,
+      render: (_: any, record: QuoteProduct) => (
+        <Text style={{ fontSize: 12 }}>{(record.unit_price ?? 0).toFixed(2)}</Text>
       ),
     },
     {
-      title: '小计(￥)',
-      dataIndex: 'subtotal',
-      key: 'subtotal',
-      width: 90,
-      render: (v: number) => <Text strong style={{ color: '#1890ff' }}>{(v ?? 0).toFixed(2)}</Text>,
+      title: '金额(\u00a5)',
+      width: 85,
+      render: (_: any, record: QuoteProduct) => (
+        <Text strong style={{ color: '#cf1322', fontSize: 13 }}>
+          {(Number(record.subtotal) || 0).toFixed(2)}
+        </Text>
+      ),
     },
     {
       title: '操作',
-      key: 'action',
-      width: 60,
+      width: 70,
+      fixed: 'right' as const,
       render: (_: any, record: QuoteProduct) => (
-        <Button type="link" danger icon={<DeleteOutlined />} size="small" onClick={() => removeProduct(record.key)} />
+        <Space>
+          <Button type="link" size="small" icon={<EditOutlined />} onClick={() => openEditModal(record.key)} />
+          <Button type="link" size="small" danger icon={<DeleteOutlined />} onClick={() => removeProduct(record.key)} />
+        </Space>
       ),
     },
   ];
 
-  // 费用表格列
+  // ========== 费用表格列（ERP风格） ==========
   const feeColumns = [
     {
       title: '费用名称',
       dataIndex: 'fee_name',
       key: 'fee_name',
-      width: 120,
+      width: 160,
       render: (v: string, record: QuoteFee) => (
-        <Input value={v} onChange={e => updateFee(record.key, 'fee_name', e.target.value)} size="small" style={{ width: 120 }} />
+        <Select
+          value={v}
+          onChange={(val) => updateFee(record.key, 'fee_name', val)}
+          size="middle"
+          style={{ width: '100%' }}
+        >
+          <Option value="安装费">安装费</Option>
+          <Option value="运输费">运输费</Option>
+          <Option value="上楼费">上楼费</Option>
+          <Option value="其他">其他</Option>
+        </Select>
       ),
     },
     {
-      title: '计费方式',
+      title: '计算方式',
       dataIndex: 'fee_type',
       key: 'fee_type',
-      width: 110,
+      width: 130,
       render: (v: string, record: QuoteFee) => (
-        <Select value={v} onChange={(val) => updateFee(record.key, 'fee_type', val)} size="small" style={{ width: 110 }}>
+        <Select value={v} onChange={(val) => updateFee(record.key, 'fee_type', val)} size="middle" style={{ width: '100%' }}>
           <Option value="fixed">固定金额</Option>
           <Option value="per_sqm">按平方米</Option>
         </Select>
       ),
     },
     {
-      title: '金额(￥)',
+      title: '金额(\u00a5)',
       dataIndex: 'amount',
       key: 'amount',
       width: 120,
       render: (v: number, record: QuoteFee) => (
-        <InputNumber value={v} onChange={(val) => updateFee(record.key, 'amount', val)} min={0} precision={2} size="small" style={{ width: 120 }} />
-      ),
-    },
-    {
-      title: '备注',
-      dataIndex: 'remark',
-      key: 'remark',
-      render: (v: string, record: QuoteFee) => (
-        <Input value={v} onChange={e => updateFee(record.key, 'remark', e.target.value)} size="small" placeholder="可选" />
+        <InputNumber value={v} onChange={(val) => updateFee(record.key, 'amount', val)} min={0} precision={2} size="middle" style={{ width: '100%' }}  onSelect={(e) => { setTimeout(() => (e.target as HTMLInputElement).select(), 0); }} />
       ),
     },
     {
@@ -634,28 +554,160 @@ export default function NewQuotePage() {
       key: 'action',
       width: 60,
       render: (_: any, record: QuoteFee) => (
-        <Button type="link" danger icon={<DeleteOutlined />} size="small" onClick={() => removeFee(record.key)} disabled={fees.length <= 1} />
+        <Space>
+          <Button type="link" size="small" icon={<EditOutlined />} onClick={() => {}} />
+          <Button type="link" size="small" danger icon={<DeleteOutlined />} onClick={() => removeFee(record.key)} disabled={fees.length <= 1} />
+        </Space>
       ),
     },
   ];
 
-  // 预览区域
+  // 右侧汇总区域
+  const renderSummary = () => {
+    // 计算实际优惠金额
+    let actualDiscount = discountAmount;
+    if (discountType === 'percent' && discountAmount > 0) {
+      actualDiscount = Math.round((productTotal + feeTotal) * (1 - discountAmount / 100) * 100) / 100;
+    }
+    
+
+    return (
+    <div style={{
+      position: 'sticky',
+      top: 16,
+      maxHeight: 'calc(100vh - 32px)',
+      overflowY: 'auto',
+    }}>
+      <Card
+        style={{
+          borderRadius: 8,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+          border: '1px solid #f0f0f0',
+        }}
+        bodyStyle={{ padding: '16px 20px' }}
+      >
+        <div style={{
+          fontSize: 16, fontWeight: 600, marginBottom: 16,
+          paddingBottom: 12, borderBottom: '1px solid #f0f0f0',
+          display: 'flex', alignItems: 'center', gap: 8,
+        }}>
+          <span style={{ fontSize: 20 }}>\ud83d\udccb</span> 报价汇总
+        </div>
+
+        {/* 总面积 */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+          <Text type="secondary">总面积</Text>
+          <Text strong style={{ color: '#1890ff' }}>{(totalArea ?? 0).toFixed(2)} m\u00b2</Text>
+        </div>
+
+        {/* 产品金额 */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+          <Text type="secondary">产品金额</Text>
+          <Text strong>\u00a5{(productTotal ?? 0).toFixed(2)}</Text>
+        </div>
+
+        {/* 附加费用 */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+          <Text type="secondary">附加费用</Text>
+          <Text>\u00a5{(feeTotal ?? 0).toFixed(2)}</Text>
+        </div>
+
+        {/* 优惠 */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+          <Text style={{ color: '#52c41a' }}>优惠</Text>
+          <Text strong style={{ color: '#52c41a' }}>- \u00a5{(actualDiscount ?? 0).toFixed(2)}</Text>
+        </div>
+
+        {/* 合计金额 */}
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+          marginBottom: 8,
+        }}>
+          <Text strong style={{ fontSize: 16 }}>合计金额</Text>
+          <Text strong style={{ fontSize: 28, color: '#cf1322' }}>
+            \u00a5{(grandTotal ?? 0).toFixed(2)}
+          </Text>
+        </div>
+
+        {/* 大写金额 */}
+        <div style={{ fontSize: 12, color: '#666', marginBottom: 16, lineHeight: 1.6 }}>
+          大写：{numberToChinese(grandTotal ?? 0)}
+        </div>
+
+        <Divider style={{ margin: '8px 0' }} />
+
+        {/* 明细 */}
+        <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 8 }}>明细</div>
+        <div style={{ fontSize: 13, marginBottom: 4, display: 'flex', justifyContent: 'space-between' }}>
+          <Text type="secondary">产品金额</Text>
+          <Text>\u00a5{(productTotal ?? 0).toFixed(2)}</Text>
+        </div>
+        <div style={{ fontSize: 13, marginBottom: 4, display: 'flex', justifyContent: 'space-between' }}>
+          <Text type="secondary">附加费用</Text>
+          <Text>\u00a5{(feeTotal ?? 0).toFixed(2)}</Text>
+        </div>
+        <div style={{ fontSize: 13, marginBottom: 12, display: 'flex', justifyContent: 'space-between' }}>
+          <Text type="secondary" style={{ color: '#52c41a' }}>优惠金额</Text>
+          <Text style={{ color: '#52c41a' }}>- \u00a5{(actualDiscount ?? 0).toFixed(2)}</Text>
+        </div>
+
+        <Divider style={{ margin: '12px 0' }} />
+
+        {/* 按钮组 */}
+        <Button
+          type="primary"
+          block
+          size="large"
+          icon={<SaveOutlined />}
+          loading={submitting}
+          style={{ height: 42, fontSize: 15, marginBottom: 8 }}
+          onClick={() => handleSubmit(false)}
+        >
+          保存报价
+        </Button>
+        <Row gutter={8}>
+          <Col span={12}>
+            <Button block icon={<FileTextOutlined />} style={{ height: 36 }}>预览报价单</Button>
+          </Col>
+          <Col span={12}>
+            <Button block icon={<ImportOutlined />} style={{ height: 36 }}>导出报价单</Button>
+          </Col>
+        </Row>
+
+        <div style={{ marginTop: 12, fontSize: 11, color: '#bbb', textAlign: 'center' }}>
+          报价单保存后，可在"报价管理"中查看和跟踪
+        </div>
+      </Card>
+    </div>
+  );
+};
+
+  // 获取当前编辑的产品
+  const editingProduct = editingKey ? products.find(p => p.key === editingKey) : null;
+
   return (
-    <div style={{ padding: 24, maxWidth: 1400, margin: '0 auto' }}>
+    <div style={{ padding: '16px 20px', minHeight: '100vh', background: '#f5f7fa' }}>
       {/* 顶部导航 */}
-      <div style={{ marginBottom: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{
+        marginBottom: 16, display: 'flex', alignItems: 'center',
+        justifyContent: 'space-between', background: '#fff',
+        padding: '10px 16px', borderRadius: 8,
+        boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+      }}>
         <Space>
-          <Button icon={<ArrowLeftOutlined />} onClick={() => router.back()}>
+          <Button icon={<ArrowLeftOutlined />} onClick={() => router.back()} size="middle">
             返回首页
           </Button>
-          <Title level={4} style={{ margin: 0 }}>新建报价</Title>
-          {savedQuoteNo && <Tag color="green">已生成编号：{savedQuoteNo}</Tag>}
+          <Title level={5} style={{ margin: 0, lineHeight: '32px' }}>新建报价</Title>
+          {savedQuoteNo && <Tag color="green">{savedQuoteNo}</Tag>}
         </Space>
         <Space>
           <Button icon={<ReloadOutlined />} onClick={() => {
             setProducts([]);
-            setFees([{ key: 'install', fee_name: '安装费', fee_type: 'per_sqm', amount: 35, remark: '' },
-                     { key: 'transport', fee_name: '运输费', fee_type: 'fixed', amount: 200, remark: '' }]);
+            setFees([
+              { key: 'install', fee_name: '安装费', fee_type: 'per_sqm', amount: 35, remark: '' },
+              { key: 'transport', fee_name: '运输费', fee_type: 'fixed', amount: 200, remark: '' },
+            ]);
             setDiscountAmount(0);
             setCustomerName('');
             setCustomerPhone('');
@@ -669,232 +721,405 @@ export default function NewQuotePage() {
             setSavedQuoteNo('');
             setRemark('');
             setPaymentMethod('');
-          }}>
-            清空
-          </Button>
-          <Button icon={<SaveOutlined />} onClick={() => handleSubmit(true)} size="large">
-            保存草稿
-          </Button>
-          <Button type="primary" icon={<CheckOutlined />} loading={submitting} onClick={() => handleSubmit(false)} size="large">
-            保存报价
-          </Button>
+          }}>清空</Button>
+          <Button icon={<SaveOutlined />} onClick={() => handleSubmit(true)}>保存草稿</Button>
+          <Button type="primary" icon={<CheckOutlined />} loading={submitting} onClick={() => handleSubmit(false)}>保存报价</Button>
         </Space>
       </div>
 
-      <Row gutter={[24, 24]}>
-        {/* 左侧：表单 */}
+      <Row gutter={[16, 16]}>
+        {/* 左侧工作区 ~70% */}
         <Col span={16}>
-          {/* 客户选择 */}
-          <Card title="1. 选择客户" style={{ marginBottom: 24 }}>
-            <Space style={{ marginBottom: 16, width: '100%', display: 'flex' }}>
-              <Select
-                placeholder="搜索客户姓名、电话、地址"
-                style={{ flex: 1 }}
-                showSearch
-                filterOption={(input, option) =>
-                  ((option?.label ?? '') as string).toLowerCase().includes(input.toLowerCase())
-                }
-                options={filteredCustomers.map(c => ({
-                  label: c.name + ' ' + c.phone + (c.address ? ' - ' + c.address : ''),
-                  value: c.id,
-                }))}
-                onChange={handleSelectCustomer}
-                size="large"
-                value={customerId}
-              />
-              <Button icon={<PlusOutlined />} onClick={() => setShowAddCustomer(true)} size="large">
-                新客户
-              </Button>
-            </Space>
 
-            {customerName && (
-              <Form layout="vertical">
-                <Row gutter={16}>
-                  <Col span={8}><Form.Item label="客户姓名"><Input value={customerName} size="large" readOnly /></Form.Item></Col>
-                  <Col span={8}><Form.Item label="联系电话"><Input value={customerPhone} size="large" readOnly /></Form.Item></Col>
-                  <Col span={8}><Form.Item label="安装地址"><Input value={customerAddress} size="large" readOnly /></Form.Item></Col>
-                </Row>
-              </Form>
+          {/* ===== 客户信息卡片 ===== */}
+          <Card
+            style={{ marginBottom: 16, borderRadius: 8, border: '1px solid #f0f0f0' }}
+            bodyStyle={{ padding: '12px 20px' }}
+          >
+            {!customerId ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <Select
+                  placeholder="搜索客户姓名、电话、地址"
+                  showSearch
+                  filterOption={(input, option) =>
+                    ((option?.label ?? '') as string).toLowerCase().includes(input.toLowerCase())
+                  }
+                  options={filteredCustomers.map(c => ({
+                    label: c.name + ' ' + c.phone + (c.address ? ' - ' + c.address : ''),
+                    value: c.id,
+                  }))}
+                  onChange={handleSelectCustomer}
+                  style={{ flex: 1 }}
+                  size="middle"
+                />
+                <Button icon={<PlusOutlined />} onClick={() => setShowAddCustomer(true)}>
+                  新建客户
+                </Button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Space size={24}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <Avatar size="default" icon={<UserOutlined />} style={{ background: '#1890ff' }} />
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: 15 }}>{customerName}</div>
+                      <div style={{ fontSize: 12, color: '#666', display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                          <PhoneOutlined style={{ fontSize: 11 }} /> {customerPhone}
+                        </span>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                          <EnvironmentOutlined style={{ fontSize: 11 }} /> {customerAddress || '暂无地址'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </Space>
+                <Space>
+                  <Button size="small" onClick={() => { setCustomerId(undefined); setCustomerName(''); setCustomerPhone(''); setCustomerAddress(''); }}>更换客户</Button>
+                  <Button size="small" type="primary" ghost onClick={() => setShowAddCustomer(true)}>新建客户</Button>
+                </Space>
+              </div>
             )}
           </Card>
 
-          {/* 产品列表 */}
-          <Card title="2. 产品配置" extra={
-            <Button type="primary" icon={<PlusOutlined />} onClick={addProduct} size="large">
-              添加产品
-            </Button>
-          } style={{ marginBottom: 24 }}>
+          {/* ===== 产品配置表格 ===== */}
+          <Card
+            title={
+              <span style={{ fontSize: 14, fontWeight: 600 }}>
+                <span style={{ marginRight: 8 }}>\ud83d\udce6</span>产品配置
+              </span>
+            }
+            extra={
+              <Space>
+                <Button size="small" disabled title="预留功能">
+                  <ImportOutlined /> 导入方案
+                </Button>
+                <Button size="small" disabled title="预留功能">从模板添加</Button>
+                <Button type="primary" icon={<PlusOutlined />} onClick={addProduct}>
+                  添加产品
+                </Button>
+              </Space>
+            }
+            style={{ marginBottom: 16, borderRadius: 8, border: '1px solid #f0f0f0' }}
+            bodyStyle={{ padding: '0' }}
+          >
             {products.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px 0', color: '#999' }}>
-                <Text>请点击右上角"添加产品"开始配置门窗</Text>
+              <div style={{ textAlign: 'center', padding: '48px 0', color: '#bbb' }}>
+                <FileTextOutlined style={{ fontSize: 32, color: '#d9d9d9', marginBottom: 8 }} />
+                <div style={{ fontSize: 14 }}>请点击右上角"添加产品"开始配置门窗</div>
               </div>
             ) : (
               <Table
-                columns={productColumns}
+                columns={displayProductColumns}
                 dataSource={products}
-                scroll={{ x: 2000 }}
+                size="middle"
                 pagination={false}
-                size="small"
+                rowKey="key"
+                scroll={{ x: 1000 }}
                 bordered
+                style={{ borderRadius: 8, overflow: 'hidden' }}
               />
+            )}
+
+            {/* 小计行 */}
+            {products.length > 0 && (
+              <div style={{
+                display: 'flex', justifyContent: 'space-between',
+                padding: '10px 16px', background: '#fafafa',
+                borderTop: '1px solid #f0f0f0',
+                fontSize: 13,
+              }}>
+                <Text>小计（{products.length} 项）</Text>
+                <Text strong style={{ color: '#1890ff' }}>
+                  {products.reduce((sum, p) => sum + (p.area * p.quantity), 0).toFixed(2)} m\u00b2 &nbsp;&nbsp;
+                  \u00a5{products.reduce((sum, p) => sum + (p.subtotal || 0), 0).toFixed(2)}
+                </Text>
+              </div>
             )}
           </Card>
 
-          {/* 费用配置 */}
-          <Card title="3. 附加费用" extra={
-            <Button icon={<PlusOutlined />} onClick={addFee} size="small">
-              添加费用
-            </Button>
-          } style={{ marginBottom: 24 }}>
+          {/* ===== 附加费用 ===== */}
+          <Card
+            title={
+              <span style={{ fontSize: 14, fontWeight: 600 }}>
+                <span style={{ marginRight: 8 }}>\ud83d\udcb0</span>附加费用
+              </span>
+            }
+            extra={
+              <Button size="small" icon={<PlusOutlined />} onClick={addFee}>
+                添加费用
+              </Button>
+            }
+            style={{ marginBottom: 16, borderRadius: 8, border: '1px solid #f0f0f0' }}
+            bodyStyle={{ padding: '0' }}
+          >
             <Table
               columns={feeColumns}
               dataSource={fees}
-              pagination={false}
               size="small"
+              pagination={false}
+              rowKey="key"
               bordered
             />
           </Card>
 
-          {/* 折扣和其他信息 */}
-          <Card title="4. 折扣与备注" style={{ marginBottom: 24 }}>
-            <Row gutter={16}>
+          {/* ===== 折扣与备注 ===== */}
+          <Card
+            title={
+              <span style={{ fontSize: 14, fontWeight: 600 }}>
+                <span style={{ marginRight: 8 }}>\ud83c\udff7</span>折扣与备注
+              </span>
+            }
+            style={{ marginBottom: 16, borderRadius: 8, border: '1px solid #f0f0f0' }}
+          >
+            <Row gutter={[12, 12]}>
               <Col span={8}>
-                <Form.Item label="优惠金额(￥)">
-                  <InputNumber
-                    value={discountAmount}
-                    onChange={(v) => setDiscountAmount(v || 0)}
-                    min={0}
-                    max={grandTotal + productTotal}
-                    style={{ width: '100%' }}
-                    size="large"
-                  />
+                <Form.Item label="优惠方式" style={{ marginBottom: 0 }}>
+                  <Select value={discountType} onChange={setDiscountType} style={{ width: '100%' }} size="middle">
+                    <Option value="fixed">固定金额</Option>
+                    <Option value="percent">百分比折扣</Option>
+                  </Select>
                 </Form.Item>
               </Col>
               <Col span={8}>
-                <Form.Item label="付款方式">
-                  <Input value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)} placeholder="如：50%预付" size="large" />
+                <Form.Item label={discountType === 'percent' ? '折扣比例' : '优惠金额'} style={{ marginBottom: 0 }}>
+                  {discountType === 'percent' ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <InputNumber
+                        value={discountAmount}
+                        onChange={(val) => {
+                          setDiscountAmount(val || 0);
+                          calculateTotals(products, fees);
+                        }}
+                        min={0} max={100} precision={2}
+                        style={{ flex: 1 }}
+                       onSelect={(e) => { setTimeout(() => (e.target as HTMLInputElement).select(), 0); }} />
+                      <Text>%</Text>
+                    </div>
+                  ) : (
+                    <InputNumber
+                      value={discountAmount}
+                      onChange={(val) => {
+                        setDiscountAmount(val || 0);
+                        calculateTotals(products, fees);
+                      }}
+                      min={0} precision={2}
+                      style={{ width: '100%' }}
+                     onSelect={(e) => { setTimeout(() => (e.target as HTMLInputElement).select(), 0); }} />
+                  )}
                 </Form.Item>
               </Col>
               <Col span={8}>
-                <Form.Item label="交货天数">
-                  <InputNumber
-                    value={deliveryDays}
-                    onChange={(v) => setDeliveryDays(v || 15)}
-                    min={1}
-                    max={90}
-                    style={{ width: '100%' }}
-                    size="large"
+                <Form.Item label="优惠结果" style={{ marginBottom: 0 }}>
+                  <div style={{ color: '#52c41a', fontWeight: 600, fontSize: 15 }}>
+                    - \u00a5{(discountAmount ?? 0).toFixed(2)} 元
+                  </div>
+                </Form.Item>
+              </Col>
+              <Col span={24}>
+                <Form.Item label="备注信息" style={{ marginBottom: 0 }}>
+                  <Input.TextArea
+                    value={remark}
+                    onChange={e => setRemark(e.target.value)}
+                    placeholder="如：不含五金配件、纱窗，需客户自备电源等信息..."
+                    rows={3}
+                    maxLength={200}
+                    showCount
                   />
                 </Form.Item>
               </Col>
             </Row>
-            <Row gutter={16}>
-              <Col span={8}>
-                <Form.Item label="质保年限">
-                  <InputNumber
-                    value={warrantyYears}
-                    onChange={(v) => setWarrantyYears(v || 5)}
-                    min={0}
-                    max={20}
-                    style={{ width: '100%' }}
-                    size="large"
-                  />
-                </Form.Item>
-              </Col>
-              <Col span={8}>
-                <Form.Item label="报价有效期(天)">
-                  <InputNumber
-                    value={validDays}
-                    onChange={(v) => setValidDays(v || 30)}
-                    min={1}
-                    max={90}
-                    style={{ width: '100%' }}
-                    size="large"
-                  />
-                </Form.Item>
-              </Col>
-              <Col span={8}></Col>
-            </Row>
-            <Form.Item label="备注">
-              <Input.TextArea
-                value={remark}
-                onChange={e => setRemark(e.target.value)}
-                rows={3}
-                placeholder="如：不含高空作业费、需客户自备辅料等"
-              />
-            </Form.Item>
           </Card>
         </Col>
 
-        {/* 右侧：实时预览 */}
+        {/* 右侧报价汇总 ~30% */}
         <Col span={8}>
-          <Card title="报价预览" style={{ position: 'sticky', top: 24 }}>
-            <Divider plain>合计</Divider>
-            <div style={{ marginBottom: 16 }}>
-              <Text type="secondary">总面积：</Text>
-              <Text strong style={{ fontSize: 16 }}>{(totalArea ?? 0).toFixed(2)} ㎡</Text>
-            </div>
-            <div style={{ marginBottom: 16 }}>
-              <Text type="secondary">产品总价：</Text>
-              <Text strong style={{ fontSize: 16 }}>￥{(productTotal ?? 0).toFixed(2)}</Text>
-            </div>
-            <div style={{ marginBottom: 16 }}>
-              <Text type="secondary">费用合计：</Text>
-              <Text strong style={{ fontSize: 16 }}>￥{(feeTotal ?? 0).toFixed(2)}</Text>
-            </div>
-            {discountAmount > 0 && (
-              <div style={{ marginBottom: 16 }}>
-                <Text type="secondary">优惠金额：</Text>
-                <Text strong style={{ color: '#ff4d4f', fontSize: 16 }}>- ￥{(discountAmount ?? 0).toFixed(2)}</Text>
-              </div>
-            )}
-            <Divider />
-            <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Text strong style={{ fontSize: 18 }}>合计金额：</Text>
-              <Text strong style={{ fontSize: 28, color: '#cf1322' }}>￥{(grandTotal ?? 0).toFixed(2)}</Text>
-            </div>
-
-            <Divider plain>明细</Divider>
-            {products.map((p, i) => (
-              <div key={p.key} style={{ marginBottom: 12, padding: 8, background: '#fafafa', borderRadius: 4 }}>
-                <Text strong>{i + 1}. {p.product_category}</Text>
-                <div style={{ fontSize: 12, color: '#666', marginTop: 4 }}>
-                  {p.profile_series?.name || '未选型材'} · {p.glass?.name || '未选玻璃'}
-                  {p.color ? ` · ${p.color.name}` : ''}
-                </div>
-                <div style={{ fontSize: 12, color: '#666' }}>
-                  {p.width_mm}×{p.height_mm}mm · {p.opening_type}
-                </div>
-                <div style={{ fontSize: 12, color: '#666' }}>
-                  {p.area}㎡ × {p.quantity} · ￥{p.unit_price}/㎡
-                </div>
-                <div style={{ fontSize: 14, color: '#1890ff', fontWeight: 'bold', marginTop: 4 }}>
-                  ￥{(Number(p.subtotal) || 0).toFixed(2)}
-                </div>
-              </div>
-            ))}
-
-            {fees.length > 0 && (
-              <>
-                <Divider plain>费用</Divider>
-                {fees.map(f => (
-                  <div key={f.key} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 13 }}>
-                    <Text type="secondary">{f.fee_name}</Text>
-                    <Text>￥{(Number(f.amount) || 0).toFixed(2)}</Text>
-                  </div>
-                ))}
-              </>
-            )}
-
-            <Divider />
-            <Button type="primary" block size="large" style={{ height: 48, fontSize: 16, marginBottom: 8 }} onClick={() => handleSubmit(false)}>
-              保存报价
-            </Button>
-          </Card>
+          {renderSummary()}
         </Col>
       </Row>
 
-      {/* 新增客户弹窗 */}
+      {/* ===== 产品编辑弹窗 ===== */}
+      <Modal
+        title="编辑产品"
+        open={showEditModal}
+        onCancel={() => { setShowEditModal(false); setEditingKey(null); }}
+        onOk={saveEdit}
+        width={600}
+        okText="保存"
+        cancelText="取消"
+      >
+        {editingProduct && (() => {
+          const p = editingProduct;
+          return (
+            <Form layout="vertical" style={{ marginTop: 16 }}>
+              <Form.Item label="产品分类">
+                <Select
+                  value={p.product_category}
+                  onChange={(v) => updateProduct(p.key, 'product_category', v)}
+                  style={{ width: '100%' }}
+                >
+                  <Option value="平开窗">平开窗</Option>
+                  <Option value="推拉门">推拉门</Option>
+                  <Option value="阳光房">阳光房</Option>
+                  <Option value="门">门</Option>
+                  <Option value="隔断">隔断</Option>
+                </Select>
+              </Form.Item>
+
+              <Row gutter={12}>
+                <Col span={12}>
+                  <Form.Item label="型材系列">
+                    <Select
+                      value={p.profile_series_id}
+                      onChange={(val) => updateProduct(p.key, 'profile_series_id', val)}
+                      placeholder="选择型材"
+                      style={{ width: '100%' }}
+                    >
+                      {profiles.map(pr => (
+                        <Option key={pr.id} value={pr.id}>{pr.name}（\u00a5{pr.base_price}/\u00b2）</Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item label="玻璃">
+                    <Select
+                      value={p.glass_config_id}
+                      onChange={(val) => updateProduct(p.key, 'glass_config_id', val)}
+                      placeholder="选择玻璃"
+                      style={{ width: '100%' }}
+                    >
+                      {glassConfigs.map(g => (
+                        <Option key={g.id} value={g.id}>{g.name}（+\u00a5{g.price_add}）</Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              <Row gutter={12}>
+                <Col span={12}>
+                  <Form.Item label="颜色">
+                    <Select
+                      value={p.color_id}
+                      onChange={(val) => updateProduct(p.key, 'color_id', val)}
+                      placeholder="选择颜色"
+                      style={{ width: '100%' }}
+                    >
+                      <Option value={0}>白色（不加价）</Option>
+                      {colors.map(c => (
+                        <Option key={c.id} value={c.id}>{c.name}（+\u00a5{c.price_add}）</Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item label="五金件">
+                    <Select
+                      value={p.hardware_id}
+                      onChange={(val) => updateProduct(p.key, 'hardware_id', val)}
+                      placeholder="选择五金"
+                      style={{ width: '100%' }}
+                    >
+                      <Option value={0}>无（不加价）</Option>
+                      {hardwares.map(h => (
+                        <Option key={h.id} value={h.id}>{h.name}（+\u00a5{h.price_per_unit}）</Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              <Divider style={{ margin: '8px 0' }} />
+
+              <Row gutter={12}>
+                <Col span={8}>
+                  <Form.Item label="宽(mm)">
+                    <InputNumber
+                      value={p.width_mm}
+                      onChange={(val) => updateProduct(p.key, 'width_mm', val)}
+                      min={100} max={6000}
+                      style={{ width: '100%' }}
+                     onSelect={(e) => { setTimeout(() => (e.target as HTMLInputElement).select(), 0); }} />
+                  </Form.Item>
+                </Col>
+                <Col span={8}>
+                  <Form.Item label="高(mm)">
+                    <InputNumber
+                      value={p.height_mm}
+                      onChange={(val) => updateProduct(p.key, 'height_mm', val)}
+                      min={100} max={4000}
+                      style={{ width: '100%' }}
+                     onSelect={(e) => { setTimeout(() => (e.target as HTMLInputElement).select(), 0); }} />
+                  </Form.Item>
+                </Col>
+                <Col span={8}>
+                  <Form.Item label="面积(m\u00b2)">
+                    <Input value={`${(p.area ?? 0).toFixed(2)}`} readOnly />
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              <Row gutter={12}>
+                <Col span={8}>
+                  <Form.Item label="开启方式">
+                    <Select
+                      value={p.opening_type}
+                      onChange={(val) => updateProduct(p.key, 'opening_type', val)}
+                      style={{ width: '100%' }}
+                    >
+                      <Option value="固定">固定</Option>
+                      <Option value="平开">平开</Option>
+                      <Option value="推拉">推拉</Option>
+                    </Select>
+                  </Form.Item>
+                </Col>
+                <Col span={8}>
+                  <Form.Item label="数量">
+                    <InputNumber
+                      value={p.quantity}
+                      onChange={(val) => updateProduct(p.key, 'quantity', val)}
+                      min={1} max={100}
+                      style={{ width: '100%' }}
+                     onSelect={(e) => { setTimeout(() => (e.target as HTMLInputElement).select(), 0); }} />
+                  </Form.Item>
+                </Col>
+                <Col span={8}>
+                  <Form.Item label="单价(\u00a5/\u00b2)">
+                    <InputNumber
+                      value={p.unit_price}
+                      onChange={(val) => updateProduct(p.key, 'unit_price', val)}
+                      min={0} precision={2}
+                      style={{ width: '100%' }}
+                     onSelect={(e) => { setTimeout(() => (e.target as HTMLInputElement).select(), 0); }} />
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              <Row gutter={12}>
+                <Col span={12}>
+                  <div style={{
+                    padding: 12, background: '#f6ffed', borderRadius: 6,
+                    border: '1px solid #b7eb8f',
+                  }}>
+                    <Text type="secondary" style={{ fontSize: 12 }}>金额小计：</Text>
+                    <div style={{ fontSize: 20, fontWeight: 600, color: '#52c41a' }}>
+                      \u00a5{(Number(p.subtotal) || 0).toFixed(2)}
+                    </div>
+                  </div>
+                </Col>
+                <Col span={12}>
+                  <Form.Item label="备注">
+                    <Input value={p.remark || ""} onChange={e => updateProduct(p.key, "remark", e.target.value)} placeholder="�����뱸ע��Ϣ" />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </Form>
+          );
+        })()}
+      </Modal>
+
+      {/* ===== 新增客户弹窗 ===== */}
       <Modal
         title="新增客户"
         open={showAddCustomer}
@@ -923,11 +1148,9 @@ export default function NewQuotePage() {
               setCustomerPhone(result.data.phone);
               setCustomerAddress(result.data.address || '');
               setShowAddCustomer(false);
-              // 刷新客户列表
               const custRes = await fetch('/api/customers?userId=1');
               const custData = await custRes.json();
               setCustomers(custData.data);
-              // 清空表单
               setNewCustomerName('');
               setNewCustomerPhone('');
               setNewCustomerAddress('');
@@ -938,9 +1161,9 @@ export default function NewQuotePage() {
         }}
       >
         <Form layout="vertical" style={{ marginTop: 24 }}>
-          <Form.Item label="客户姓名"><Input value={newCustomerName} onChange={e => setNewCustomerName(e.target.value)} placeholder="请输入客户姓名" size="large" /></Form.Item>
-          <Form.Item label="联系电话"><Input value={newCustomerPhone} onChange={e => setNewCustomerPhone(e.target.value)} placeholder="请输入联系电话" size="large" /></Form.Item>
-          <Form.Item label="安装地址"><Input value={newCustomerAddress} onChange={e => setNewCustomerAddress(e.target.value)} placeholder="请输入安装地址" size="large" /></Form.Item>
+          <Form.Item label="客户姓名"><Input value={newCustomerName} onChange={e => setNewCustomerName(e.target.value)} placeholder="请输入客户姓名" /></Form.Item>
+          <Form.Item label="联系电话"><Input value={newCustomerPhone} onChange={e => setNewCustomerPhone(e.target.value)} placeholder="请输入联系电话" /></Form.Item>
+          <Form.Item label="安装地址"><Input value={newCustomerAddress} onChange={e => setNewCustomerAddress(e.target.value)} placeholder="请输入安装地址" /></Form.Item>
         </Form>
       </Modal>
     </div>

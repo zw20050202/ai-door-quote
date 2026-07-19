@@ -113,26 +113,36 @@ export default function QuotePreviewPage() {
 
         {/* 产品明细表格 */}
         <Title level={5} style={{ marginTop: 20, position: 'relative', zIndex: 1 }}>产品明细</Title>
-        <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 20, fontSize: 12, position: 'relative', zIndex: 1 }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 20, fontSize: 11, position: 'relative', zIndex: 1 }}>
           <thead>
             <tr style={{ background: '#f0f0f0' }}>
-              <th style={{ padding: '8px 6px', textAlign: 'left', borderBottom: '2px solid #ddd' }}>序号</th>
-              <th style={{ padding: '8px 6px', textAlign: 'left', borderBottom: '2px solid #ddd' }}>产品名称</th>
-              <th style={{ padding: '8px 6px', textAlign: 'left', borderBottom: '2px solid #ddd' }}>规格型号</th>
-              <th style={{ padding: '8px 6px', textAlign: 'right', borderBottom: '2px solid #ddd' }}>数量</th>
-              <th style={{ padding: '8px 6px', textAlign: 'right', borderBottom: '2px solid #ddd' }}>单价（元）</th>
-              <th style={{ padding: '8px 6px', textAlign: 'right', borderBottom: '2px solid #ddd' }}>金额（元）</th>
+              <th style={{ padding: '6px 4px', textAlign: 'left', borderBottom: '2px solid #ddd', width: 40 }}>序号</th>
+              <th style={{ padding: '6px 4px', textAlign: 'left', borderBottom: '2px solid #ddd' }}>产品名称</th>
+              <th style={{ padding: '6px 4px', textAlign: 'left', borderBottom: '2px solid #ddd' }}>型号系列</th>
+              <th style={{ padding: '6px 4px', textAlign: 'left', borderBottom: '2px solid #ddd' }}>玻璃</th>
+              <th style={{ padding: '6px 4px', textAlign: 'left', borderBottom: '2px solid #ddd' }}>颜色</th>
+              <th style={{ padding: '6px 4px', textAlign: 'left', borderBottom: '2px solid #ddd' }}>五金</th>
+              <th style={{ padding: '6px 4px', textAlign: 'center', borderBottom: '2px solid #ddd' }}>尺寸(mm)</th>
+              <th style={{ padding: '6px 4px', textAlign: 'right', borderBottom: '2px solid #ddd', width: 60 }}>面积(㎡)</th>
+              <th style={{ padding: '6px 4px', textAlign: 'right', borderBottom: '2px solid #ddd', width: 50 }}>数量</th>
+              <th style={{ padding: '6px 4px', textAlign: 'right', borderBottom: '2px solid #ddd', width: 80 }}>单价(元)</th>
+              <th style={{ padding: '6px 4px', textAlign: 'right', borderBottom: '2px solid #ddd', width: 90 }}>金额(元)</th>
             </tr>
           </thead>
           <tbody>
             {(quote.products || []).map((item, index) => (
               <tr key={index} style={{ borderBottom: '1px solid #eee' }}>
-                <td style={{ padding: '8px 6px' }}>{index + 1}</td>
-                <td style={{ padding: '8px 6px' }}>{item.product_name || item.name || '-'}</td>
-                <td style={{ padding: '8px 6px' }}>{item.specification || '-'}</td>
-                <td style={{ padding: '8px 6px', textAlign: 'right' }}>{Number(item.quantity || 0).toLocaleString()}</td>
-                <td style={{ padding: '8px 6px', textAlign: 'right' }}>¥{Number(item.unit_price || 0).toFixed(2)}</td>
-                <td style={{ padding: '8px 6px', textAlign: 'right' }}>¥{Number(item.amount || 0).toFixed(2)}</td>
+                <td style={{ padding: '6px 4px' }}>{index + 1}</td>
+                <td style={{ padding: '6px 4px' }}>{item.product_category || '-'}</td>
+                <td style={{ padding: '6px 4px' }}>{item.profile_series_name || '-'}</td>
+                <td style={{ padding: '6px 4px' }}>{item.glass_name ? item.glass_name + (item.glass_spec ? '(' + item.glass_spec + ')' : '') : '-'}</td>
+                <td style={{ padding: '6px 4px' }}>{item.color_name || '-'}</td>
+                <td style={{ padding: '6px 4px' }}>{item.hardware_name || '-'}</td>
+                <td style={{ padding: '6px 4px', textAlign: 'center' }}>{item.width_mm}×{item.height_mm}</td>
+                <td style={{ padding: '6px 4px', textAlign: 'right' }}>{Number(item.area || 0).toFixed(2)}</td>
+                <td style={{ padding: '6px 4px', textAlign: 'right' }}>{Number(item.quantity || 0).toLocaleString()}</td>
+                <td style={{ padding: '6px 4px', textAlign: 'right' }}>¥{Number(item.unit_price || 0).toFixed(2)}</td>
+                <td style={{ padding: '6px 4px', textAlign: 'right', fontWeight: 'bold' }}>¥{Number(item.subtotal || 0).toFixed(2)}</td>
               </tr>
             ))}
           </tbody>
@@ -140,19 +150,34 @@ export default function QuotePreviewPage() {
 
         {/* 费用汇总 */}
         <div style={{ textAlign: 'right', marginBottom: 32, position: 'relative', zIndex: 1 }}>
+          {/* 附加费用列表 */}
+          {(quote.fees && quote.fees.length > 0) && (
+            <div style={{ marginBottom: 12, textAlign: 'left', fontSize: 12 }}>
+              <Text strong style={{ fontSize: 13, display: 'block', marginBottom: 6 }}>附加费用：</Text>
+              {quote.fees.map((f, i) => (
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3, fontSize: 12 }}>
+                  <span>{f.fee_name}{f.fee_type ? ' (' + (f.fee_type === 'per_sqm' ? '按㎡' : f.fee_type === 'per_unit' ? '按件' : '固定') + ')' : ''}</span>
+                  <span>¥{Number(f.amount || 0).toFixed(2)}</span>
+                </div>
+              ))}
+            </div>
+          )}
           <div style={{ marginBottom: 4, fontSize: 13 }}>
             <span style={{ marginRight: 40 }}>产品小计：¥{Number(quote.product_total || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-            <span>运费：¥{Number(quote.shipping_fee || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
           </div>
           <div style={{ marginBottom: 4, fontSize: 13 }}>
-            <span>税费：¥{Number(quote.tax_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+            <span style={{ marginRight: 40 }}>附加费用：¥{Number(quote.fee_total || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
           </div>
+          {Number(quote.discount_amount) > 0 && (
+            <div style={{ marginBottom: 4, fontSize: 13 }}>
+              <span style={{ marginRight: 40 }}>优惠金额：-¥{Number(quote.discount_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+            </div>
+          )}
           <Divider style={{ margin: '8px 0' }} />
           <div style={{ fontSize: 18, fontWeight: 700, color: '#cf1322' }}>
-            合计：¥{Number(quote.grand_total || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            最终合计：¥{Number(quote.grand_total || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
           </div>
         </div>
-
         {/* 备注 */}
         {quote.remark && (
           <div style={{ marginBottom: 32, padding: 12, background: '#fffbe6', borderRadius: 6, position: 'relative', zIndex: 1 }}>
