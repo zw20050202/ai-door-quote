@@ -456,12 +456,12 @@ export default function NewQuotePage() {
       width: 90,
       render: (_: any, record: QuoteProduct) => (
         <Text style={{ fontSize: 12 }}>
-          {(record.width_mm ?? '--') + '\u00d7' + (record.height_mm ?? '--')}
+          {(record.width_mm ?? '--') + '×' + (record.height_mm ?? '--')}
         </Text>
       ),
     },
     {
-      title: '面积(m\u00b2)',
+      title: '面积(m²)',
       width: 70,
       render: (_: any, record: QuoteProduct) => (
         <Text strong style={{ fontSize: 12 }}>{(record.area ?? 0).toFixed(2)}</Text>
@@ -479,14 +479,14 @@ export default function NewQuotePage() {
       },
     },
     {
-      title: '单价(\u00a5)',
+      title: '单价(¥)',
       width: 75,
       render: (_: any, record: QuoteProduct) => (
         <Text style={{ fontSize: 12 }}>{(record.unit_price ?? 0).toFixed(2)}</Text>
       ),
     },
     {
-      title: '金额(\u00a5)',
+      title: '金额(¥)',
       width: 85,
       render: (_: any, record: QuoteProduct) => (
         <Text strong style={{ color: '#cf1322', fontSize: 13 }}>
@@ -541,12 +541,12 @@ export default function NewQuotePage() {
       ),
     },
     {
-      title: '金额(\u00a5)',
+      title: '金额(¥)',
       dataIndex: 'amount',
       key: 'amount',
       width: 120,
       render: (v: number, record: QuoteFee) => (
-        <InputNumber value={v} onChange={(val) => updateFee(record.key, 'amount', val)} min={0} precision={2} size="middle" style={{ width: '100%' }}  onSelect={(e) => { setTimeout(() => (e.target as HTMLInputElement).select(), 0); }} />
+        <InputNumber value={v} onChange={(val) => updateFee(record.key, 'amount', val)} min={0} precision={2} size="middle" style={{ width: '100%' }}  />
       ),
     },
     {
@@ -591,31 +591,31 @@ export default function NewQuotePage() {
           paddingBottom: 12, borderBottom: '1px solid #f0f0f0',
           display: 'flex', alignItems: 'center', gap: 8,
         }}>
-          <span style={{ fontSize: 20 }}>\ud83d\udccb</span> 报价汇总
+          <span style={{ fontSize: 20 }}>📋</span> 报价汇总
         </div>
 
         {/* 总面积 */}
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
           <Text type="secondary">总面积</Text>
-          <Text strong style={{ color: '#1890ff' }}>{(totalArea ?? 0).toFixed(2)} m\u00b2</Text>
+          <Text strong style={{ color: '#1890ff' }}>{(totalArea ?? 0).toFixed(2)} m²</Text>
         </div>
 
         {/* 产品金额 */}
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
           <Text type="secondary">产品金额</Text>
-          <Text strong>\u00a5{(productTotal ?? 0).toFixed(2)}</Text>
+          <Text strong>¥{(productTotal ?? 0).toFixed(2)}</Text>
         </div>
 
         {/* 附加费用 */}
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
           <Text type="secondary">附加费用</Text>
-          <Text>\u00a5{(feeTotal ?? 0).toFixed(2)}</Text>
+          <Text>¥{(feeTotal ?? 0).toFixed(2)}</Text>
         </div>
 
         {/* 优惠 */}
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
           <Text style={{ color: '#52c41a' }}>优惠</Text>
-          <Text strong style={{ color: '#52c41a' }}>- \u00a5{(actualDiscount ?? 0).toFixed(2)}</Text>
+          <Text strong style={{ color: '#52c41a' }}>- ¥{(actualDiscount ?? 0).toFixed(2)}</Text>
         </div>
 
         {/* 合计金额 */}
@@ -625,7 +625,7 @@ export default function NewQuotePage() {
         }}>
           <Text strong style={{ fontSize: 16 }}>合计金额</Text>
           <Text strong style={{ fontSize: 28, color: '#cf1322' }}>
-            \u00a5{(grandTotal ?? 0).toFixed(2)}
+            ¥{(grandTotal ?? 0).toFixed(2)}
           </Text>
         </div>
 
@@ -640,15 +640,15 @@ export default function NewQuotePage() {
         <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 8 }}>明细</div>
         <div style={{ fontSize: 13, marginBottom: 4, display: 'flex', justifyContent: 'space-between' }}>
           <Text type="secondary">产品金额</Text>
-          <Text>\u00a5{(productTotal ?? 0).toFixed(2)}</Text>
+          <Text>¥{(productTotal ?? 0).toFixed(2)}</Text>
         </div>
         <div style={{ fontSize: 13, marginBottom: 4, display: 'flex', justifyContent: 'space-between' }}>
           <Text type="secondary">附加费用</Text>
-          <Text>\u00a5{(feeTotal ?? 0).toFixed(2)}</Text>
+          <Text>¥{(feeTotal ?? 0).toFixed(2)}</Text>
         </div>
         <div style={{ fontSize: 13, marginBottom: 12, display: 'flex', justifyContent: 'space-between' }}>
           <Text type="secondary" style={{ color: '#52c41a' }}>优惠金额</Text>
-          <Text style={{ color: '#52c41a' }}>- \u00a5{(actualDiscount ?? 0).toFixed(2)}</Text>
+          <Text style={{ color: '#52c41a' }}>- ¥{(actualDiscount ?? 0).toFixed(2)}</Text>
         </div>
 
         <Divider style={{ margin: '12px 0' }} />
@@ -786,7 +786,7 @@ export default function NewQuotePage() {
           <Card
             title={
               <span style={{ fontSize: 14, fontWeight: 600 }}>
-                <span style={{ marginRight: 8 }}>\ud83d\udce6</span>产品配置
+                <span style={{ marginRight: 8 }}>📦</span>产品配置
               </span>
             }
             extra={
@@ -831,8 +831,8 @@ export default function NewQuotePage() {
               }}>
                 <Text>小计（{products.length} 项）</Text>
                 <Text strong style={{ color: '#1890ff' }}>
-                  {products.reduce((sum, p) => sum + (p.area * p.quantity), 0).toFixed(2)} m\u00b2 &nbsp;&nbsp;
-                  \u00a5{products.reduce((sum, p) => sum + (p.subtotal || 0), 0).toFixed(2)}
+                  {products.reduce((sum, p) => sum + (p.area * p.quantity), 0).toFixed(2)} m² &nbsp;&nbsp;
+                  ¥{products.reduce((sum, p) => sum + (p.subtotal || 0), 0).toFixed(2)}
                 </Text>
               </div>
             )}
@@ -842,7 +842,7 @@ export default function NewQuotePage() {
           <Card
             title={
               <span style={{ fontSize: 14, fontWeight: 600 }}>
-                <span style={{ marginRight: 8 }}>\ud83d\udcb0</span>附加费用
+                <span style={{ marginRight: 8 }}>💰</span>附加费用
               </span>
             }
             extra={
@@ -867,7 +867,7 @@ export default function NewQuotePage() {
           <Card
             title={
               <span style={{ fontSize: 14, fontWeight: 600 }}>
-                <span style={{ marginRight: 8 }}>\ud83c\udff7</span>折扣与备注
+                <span style={{ marginRight: 8 }}>🏷</span>折扣与备注
               </span>
             }
             style={{ marginBottom: 16, borderRadius: 8, border: '1px solid #f0f0f0' }}
@@ -893,7 +893,7 @@ export default function NewQuotePage() {
                         }}
                         min={0} max={100} precision={2}
                         style={{ flex: 1 }}
-                       onSelect={(e) => { setTimeout(() => (e.target as HTMLInputElement).select(), 0); }} />
+                       />
                       <Text>%</Text>
                     </div>
                   ) : (
@@ -905,14 +905,14 @@ export default function NewQuotePage() {
                       }}
                       min={0} precision={2}
                       style={{ width: '100%' }}
-                     onSelect={(e) => { setTimeout(() => (e.target as HTMLInputElement).select(), 0); }} />
+                     />
                   )}
                 </Form.Item>
               </Col>
               <Col span={8}>
                 <Form.Item label="优惠结果" style={{ marginBottom: 0 }}>
                   <div style={{ color: '#52c41a', fontWeight: 600, fontSize: 15 }}>
-                    - \u00a5{(discountAmount ?? 0).toFixed(2)} 元
+                    - ¥{(discountAmount ?? 0).toFixed(2)} 元
                   </div>
                 </Form.Item>
               </Col>
@@ -976,7 +976,7 @@ export default function NewQuotePage() {
                       style={{ width: '100%' }}
                     >
                       {profiles.map(pr => (
-                        <Option key={pr.id} value={pr.id}>{pr.name}（\u00a5{pr.base_price}/\u00b2）</Option>
+                        <Option key={pr.id} value={pr.id}>{pr.name}（¥{pr.base_price}/²）</Option>
                       ))}
                     </Select>
                   </Form.Item>
@@ -990,7 +990,7 @@ export default function NewQuotePage() {
                       style={{ width: '100%' }}
                     >
                       {glassConfigs.map(g => (
-                        <Option key={g.id} value={g.id}>{g.name}（+\u00a5{g.price_add}）</Option>
+                        <Option key={g.id} value={g.id}>{g.name}（+¥{g.price_add}）</Option>
                       ))}
                     </Select>
                   </Form.Item>
@@ -1008,7 +1008,7 @@ export default function NewQuotePage() {
                     >
                       <Option value={0}>白色（不加价）</Option>
                       {colors.map(c => (
-                        <Option key={c.id} value={c.id}>{c.name}（+\u00a5{c.price_add}）</Option>
+                        <Option key={c.id} value={c.id}>{c.name}（+¥{c.price_add}）</Option>
                       ))}
                     </Select>
                   </Form.Item>
@@ -1023,7 +1023,7 @@ export default function NewQuotePage() {
                     >
                       <Option value={0}>无（不加价）</Option>
                       {hardwares.map(h => (
-                        <Option key={h.id} value={h.id}>{h.name}（+\u00a5{h.price_per_unit}）</Option>
+                        <Option key={h.id} value={h.id}>{h.name}（+¥{h.price_per_unit}）</Option>
                       ))}
                     </Select>
                   </Form.Item>
@@ -1040,7 +1040,7 @@ export default function NewQuotePage() {
                       onChange={(val) => updateProduct(p.key, 'width_mm', val)}
                       min={100} max={6000}
                       style={{ width: '100%' }}
-                     onSelect={(e) => { setTimeout(() => (e.target as HTMLInputElement).select(), 0); }} />
+                     />
                   </Form.Item>
                 </Col>
                 <Col span={8}>
@@ -1050,11 +1050,11 @@ export default function NewQuotePage() {
                       onChange={(val) => updateProduct(p.key, 'height_mm', val)}
                       min={100} max={4000}
                       style={{ width: '100%' }}
-                     onSelect={(e) => { setTimeout(() => (e.target as HTMLInputElement).select(), 0); }} />
+                     />
                   </Form.Item>
                 </Col>
                 <Col span={8}>
-                  <Form.Item label="面积(m\u00b2)">
+                  <Form.Item label="面积(m²)">
                     <Input value={`${(p.area ?? 0).toFixed(2)}`} readOnly />
                   </Form.Item>
                 </Col>
@@ -1081,17 +1081,17 @@ export default function NewQuotePage() {
                       onChange={(val) => updateProduct(p.key, 'quantity', val)}
                       min={1} max={100}
                       style={{ width: '100%' }}
-                     onSelect={(e) => { setTimeout(() => (e.target as HTMLInputElement).select(), 0); }} />
+                     />
                   </Form.Item>
                 </Col>
                 <Col span={8}>
-                  <Form.Item label="单价(\u00a5/\u00b2)">
+                  <Form.Item label="单价(¥/²)">
                     <InputNumber
                       value={p.unit_price}
                       onChange={(val) => updateProduct(p.key, 'unit_price', val)}
                       min={0} precision={2}
                       style={{ width: '100%' }}
-                     onSelect={(e) => { setTimeout(() => (e.target as HTMLInputElement).select(), 0); }} />
+                     />
                   </Form.Item>
                 </Col>
               </Row>
@@ -1104,7 +1104,7 @@ export default function NewQuotePage() {
                   }}>
                     <Text type="secondary" style={{ fontSize: 12 }}>金额小计：</Text>
                     <div style={{ fontSize: 20, fontWeight: 600, color: '#52c41a' }}>
-                      \u00a5{(Number(p.subtotal) || 0).toFixed(2)}
+                      ¥{(Number(p.subtotal) || 0).toFixed(2)}
                     </div>
                   </div>
                 </Col>
