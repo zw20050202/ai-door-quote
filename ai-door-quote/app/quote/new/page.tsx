@@ -143,7 +143,9 @@ export default function NewQuotePage() {
   // 折扣
   const [discountAmount, setDiscountAmount] = useState(0);
   const [discountType, setDiscountType] = useState('fixed'); // 'fixed' or 'percent'
+  const [actualDiscount, setActualDiscount] = useState(0);
 
+  // 其他信息
   // 其他信息
   const [paymentMethod, setPaymentMethod] = useState('');
   const [deliveryDays, setDeliveryDays] = useState('');
@@ -312,10 +314,11 @@ export default function NewQuotePage() {
     // 根据优惠方式计算最终金额
     let actualDiscount = discountAmount;
     if (discountType === 'percent' && discountAmount > 0) {
-      actualDiscount = Math.round((prodTotal + feeTotal) * (1 - discountAmount / 100) * 100) / 100;
+      actualDiscount = Math.round((prodTotal + feeTotal) * (discountAmount / 100) * 100) / 100;
     }
     const gt = Math.max(0, prodTotal + feeTotal - actualDiscount);
     setGrandTotal(Math.round(gt * 100) / 100);
+    setActualDiscount(actualDiscount);   
   };
 
   // 更新费用
@@ -565,19 +568,28 @@ export default function NewQuotePage() {
       key: 'fee_name',
       width: 160,
       render: (v: string, record: QuoteFee) => (
-        <Select
-          value={v}
-          onChange={(val) => updateFee(record.key, 'fee_name', val)}
-          size="middle"
-          style={{ width: '100%' }}
-        >
-          <Option value="安装费">安装费</Option>
-          <Option value="运输费">运输费</Option>
-          <Option value="上楼费">上楼费</Option>
-          <Option value="其他">其他</Option>
-        </Select>
-      ),
-    },
+        v === '其他' ? (
+          <Input
+            value={v}
+            onChange={(e) => updateFee(record.key, 'fee_name', e.target.value || '其他')}
+            size="middle"
+            style={{ width: '100%' }}
+            placeholder="请输入费用名称"
+          />
+        ) : (
+          <Select
+            value={v}
+            onChange={(val) => updateFee(record.key, 'fee_name', val)}
+            size="middle"
+            style={{ width: '100%' }}
+          >
+            <Option value="安装费">安装费</Option>
+            <Option value="运输费">运输费</Option>
+            <Option value="上楼费">上楼费</Option>
+            <Option value="其他">其他</Option>
+          </Select>
+        )
+      ),    },
     {
       title: '计算方式',
       dataIndex: 'fee_type',
@@ -614,15 +626,7 @@ export default function NewQuotePage() {
 
   // 右侧汇总区域
   const renderSummary = () => {
-    // 计算实际优惠金额
-    let actualDiscount = discountAmount;
-    if (discountType === 'percent' && discountAmount > 0) {
-      actualDiscount = Math.round((productTotal + feeTotal) * (1 - discountAmount / 100) * 100) / 100;
-    }
-    
-
-    return (
-    <div style={{
+    return (    <div style={{
       position: 'sticky',
       top: 16,
       maxHeight: 'calc(100vh - 32px)',
@@ -962,10 +966,9 @@ export default function NewQuotePage() {
               <Col span={8}>
                 <Form.Item label="优惠结果" style={{ marginBottom: 0 }}>
                   <div style={{ color: '#52c41a', fontWeight: 600, fontSize: 15 }}>
-                    - ¥{(discountAmount ?? 0).toFixed(2)} 元
+                    - ¥{(actualDiscount ?? 0).toFixed(2)} 元
                   </div>
-                </Form.Item>
-              </Col>
+                </Form.Item>              </Col>
               <Col span={24}>
                 <Form.Item label="备注信息" style={{ marginBottom: 0 }}>
                   <Input.TextArea
@@ -1180,8 +1183,7 @@ export default function NewQuotePage() {
                 </Col>
                 <Col span={12}>
                   <Form.Item label="备注">
-                    <Input value={p.remark || ""} onChange={e => updateProduct(p.key, "remark", e.target.value)} placeholder="�����뱸ע��Ϣ" />
-                  </Form.Item>
+                    <Input value={p.remark || ""} onChange={e => updateProduct(p.key, "remark", e.target.value)} placeholder="请输入备注信息" />                  </Form.Item>
                 </Col>
               </Row>
             </Form>
@@ -1317,8 +1319,7 @@ export default function NewQuotePage() {
             <div style={{ marginBottom: 16, padding: "12px 0", borderTop: "1px solid #f0f0f0" }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}><Text>产品金额：</Text><Text>¥{productTotal.toFixed(2)}</Text></div>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}><Text>附加费用：</Text><Text>¥{feeTotal.toFixed(2)}</Text></div>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, color: "#52c41a" }}><Text>优惠：</Text><Text>- ¥{discountAmount.toFixed(2)}</Text></div>
-              <Divider style={{ margin: "12px 0" }} />
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, color: "#52c41a" }}><Text>优惠：</Text><Text>- ¥{actualDiscount.toFixed(2)}</Text></div>              <Divider style={{ margin: "12px 0" }} />
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 18, fontWeight: 600, color: "#cf1322" }}><Text>合计金额：</Text><Text>¥{grandTotal.toFixed(2)}</Text></div>
               <div style={{ fontSize: 12, color: "#666", marginTop: 8 }}>大写：{numberToChinese(grandTotal)}</div>
             </div>
