@@ -1303,14 +1303,15 @@ export default function NewQuotePage() {
               <div style={{ fontSize: 12, color: "#666", marginTop: 8 }}>大写：{numberToChinese(grandTotal)}</div>
             </div>
 
-            {remark && (<Card size="small" title="备注" style={{ marginBottom: 16 }}><Text>{remark}</Text></Card>)}
-
             <div style={{ fontSize: 12, color: "#999", lineHeight: 2, padding: "12px 0", borderTop: "1px solid #eee" }}>
               <div>付款方式：{paymentMethod || "--"}</div>
-              <div>交货周期：{deliveryDays}天</div>
-              <div>质保年限：{warrantyYears}年</div>
-              <div>报价有效期：{validDays}天</div>
+              <div>交货周期：合同确认并收到预付款后15-20个工作日完成生产，具体交付时间以双方确认订单及现场实际情况为准。</div>
+              <div>质保说明：1、型材质保10年；2、五金配件质保5年；3、中空玻璃质保10年；4、免费提供一次上门调试服务；5、非人为损坏提供终身维护服务。</div>
             </div>
+
+            {remark && (<Card size="small" title="备注" style={{ marginBottom: 16 }}><Text>{remark}</Text></Card>)}
+
+
           </div>
         </Modal>
 
