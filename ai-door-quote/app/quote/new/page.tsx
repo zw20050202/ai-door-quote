@@ -146,8 +146,8 @@ export default function NewQuotePage() {
 
   // 其他信息
   const [paymentMethod, setPaymentMethod] = useState('');
-  const [deliveryDays, setDeliveryDays] = useState(15);
-  const [warrantyYears, setWarrantyYears] = useState(5);
+  const [deliveryDays, setDeliveryDays] = useState('');
+  const [warrantyYears, setWarrantyYears] = useState('');
   const [validDays, setValidDays] = useState(30);
   const [remark, setRemark] = useState('');
 
@@ -376,8 +376,8 @@ export default function NewQuotePage() {
           discount_amount: discountAmount,
           grand_total: grandTotal,
           payment_method: paymentMethod,
-          delivery_days: deliveryDays,
-          warranty_years: warrantyYears,
+          delivery_days: String(deliveryDays),
+          warranty_years: String(warrantyYears),
           valid_days: validDays,
           remark: remark,
           products: products.map(p => ({
@@ -978,6 +978,26 @@ export default function NewQuotePage() {
                   />
                 </Form.Item>
               </Col>
+              <Col span={24}>
+                <Form.Item label="交货周期" style={{ marginBottom: 0 }}>
+                  <Input.TextArea
+                    value={deliveryDays}
+                    onChange={e => setDeliveryDays(e.target.value)}
+                    placeholder="如：合同确认并收到预付款后15-20个工作日完成生产"
+                    rows={2}
+                  />
+                </Form.Item>
+              </Col>
+              <Col span={24}>
+                <Form.Item label="质保说明" style={{ marginBottom: 0 }}>
+                  <Input.TextArea
+                    value={warrantyYears}
+                    onChange={e => setWarrantyYears(e.target.value)}
+                    placeholder="如：型材质保10年；五金配件质保5年"
+                    rows={3}
+                  />
+                </Form.Item>
+              </Col>
             </Row>
           </Card>
         </Col>
@@ -1305,8 +1325,8 @@ export default function NewQuotePage() {
 
             <div style={{ fontSize: 12, color: "#999", lineHeight: 2, padding: "12px 0", borderTop: "1px solid #eee" }}>
               <div>付款方式：{paymentMethod || "--"}</div>
-              <div>交货周期：合同确认并收到预付款后15-20个工作日完成生产，具体交付时间以双方确认订单及现场实际情况为准。</div>
-              <div>质保说明：1、型材质保10年；2、五金配件质保5年；3、中空玻璃质保10年；4、免费提供一次上门调试服务；5、非人为损坏提供终身维护服务。</div>
+              <div>交货周期：{deliveryDays || "--"}</div>
+              <div>质保说明：{warrantyYears || "--"}</div>
             </div>
 
             {remark && (<Card size="small" title="备注" style={{ marginBottom: 16 }}><Text>{remark}</Text></Card>)}

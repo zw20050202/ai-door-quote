@@ -210,9 +210,9 @@ export default function QuotePreviewPage() {
         {/* 交货周期与质保说明 */}
         <div style={{ marginBottom: 24, padding: 12, background: '#f5f5f5', borderRadius: 6, position: 'relative', zIndex: 1 }}>
           <Text strong style={{ fontSize: 13, display: 'block', marginBottom: 8 }}>交货周期：</Text>
-          <Text style={{ fontSize: 12, lineHeight: 1.8, display: 'block', marginBottom: 12 }}>合同确认并收到预付款后15-20个工作日完成生产，具体交付时间以双方确认订单及现场实际情况为准。</Text>
+          <Text style={{ fontSize: 12, lineHeight: 1.8, display: 'block', marginBottom: 12 }}>{quote.delivery_days || '--'}</Text>
           <Text strong style={{ fontSize: 13, display: 'block', marginBottom: 8 }}>质保说明：</Text>
-          <Text style={{ fontSize: 12, lineHeight: 1.8, display: 'block' }}>1、型材质保10年；2、五金配件质保5年；3、中空玻璃质保10年；4、免费提供一次上门调试服务；5、非人为损坏提供终身维护服务。</Text>
+          <Text style={{ fontSize: 12, lineHeight: 1.8, display: 'block' }}>{quote.warranty_years || '--'}</Text>
         </div>
 
         {/* 备注 */}
