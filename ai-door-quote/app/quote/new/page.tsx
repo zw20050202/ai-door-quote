@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Card, Button, Input, Select, Form, Row, Col, Table, InputNumber, Space, message, Typography, Divider, Modal, Tag, Avatar,
+  Card, Button, Input, Select, Form, Row, Col, Table, InputNumber, Space, message, Typography, Divider, Modal, Tag, Avatar, Dropdown,
 } from 'antd';
 import {
   ArrowLeftOutlined, PlusOutlined, DeleteOutlined, CheckOutlined, ReloadOutlined, SaveOutlined,
@@ -144,6 +144,8 @@ export default function NewQuotePage() {
   const [discountAmount, setDiscountAmount] = useState(0);
   const [discountType, setDiscountType] = useState('fixed'); // 'fixed' or 'percent'
   const [actualDiscount, setActualDiscount] = useState(0);
+  const [showAddFeeMenu, setShowAddFeeMenu] = useState(false);
+
 
   // 其他信息
   // 其他信息
@@ -231,6 +233,8 @@ export default function NewQuotePage() {
     if (product.glass) price += product.glass.price_add;
     if (product.color) price += product.color.price_add;
     if (product.hardware) price += product.hardware.price_per_unit;
+    const cnMap = { 固定: 0, 平开: 50, 推拉: 80 };
+    price += cnMap[product.opening_type] || 0;
     return Math.round(price * 100) / 100;
   };
 
@@ -275,7 +279,7 @@ export default function NewQuotePage() {
         updated.area = Math.round((w / 1000) * (h / 1000) * 100) / 100;
       }
 
-      if (['profile_series_id', 'glass_config_id', 'color_id', 'hardware_id'].includes(field)) {
+      if (['profile_series_id', 'glass_config_id', 'color_id', 'hardware_id', 'opening_type'].includes(field)) {
         updated.profile_series = field === 'profile_series_id'
           ? (profiles.find(x => x.id === value) || updated.profile_series)
           : updated.profile_series;
@@ -299,7 +303,7 @@ export default function NewQuotePage() {
   };
 
   // 计算总计
-  const calculateTotals = (prods: QuoteProduct[], currentFees: QuoteFee[]) => {
+  const calculateTotals = (prods: QuoteProduct[], currentFees: QuoteFee[], currentDiscountAmount?: number) => {
     let area = 0;
     let prodTotal = 0;
     for (const p of prods) {
@@ -312,9 +316,10 @@ export default function NewQuotePage() {
     setFeeTotal(Math.round(feeTotal * 100) / 100);
     setProductTotal(Math.round(prodTotal * 100) / 100);
     // 根据优惠方式计算最终金额
-    let actualDiscount = discountAmount;
-    if (discountType === 'percent' && discountAmount > 0) {
-      actualDiscount = Math.round((prodTotal + feeTotal) * (discountAmount / 100) * 100) / 100;
+    const effectiveDiscountAmount = currentDiscountAmount !== undefined ? currentDiscountAmount : discountAmount;
+    let actualDiscount = effectiveDiscountAmount;
+    if (discountType === 'percent' && effectiveDiscountAmount > 0) {
+      actualDiscount = Math.round(prodTotal * (effectiveDiscountAmount / 100) * 100) / 100;
     }
     const gt = Math.max(0, prodTotal + feeTotal - actualDiscount);
     setGrandTotal(Math.round(gt * 100) / 100);
@@ -327,12 +332,15 @@ export default function NewQuotePage() {
     setFees(newFees);
     calculateTotals(products, newFees);
   };
-
   // 添加费用
-  const addFee = () => {
+  const addFee = (type: string) => {
     const key = 'fee_' + Date.now();
-    setFees([...fees, { key, fee_name: '新费用', fee_type: 'fixed', amount: 0, remark: '' }]);
-    calculateTotals(products, [...fees, { key, fee_name: '新费用', fee_type: 'fixed', amount: 0, remark: '' }]);
+    let name = '';
+    if (type === 'install') name = '安装费';
+    else if (type === 'transport') name = '运输费';
+    else if (type === 'upstairs') name = '上楼费';
+    setFees([...fees, { key, fee_name: name, fee_type: 'fixed', amount: 0, remark: '' }]);
+    calculateTotals(products, [...fees, { key, fee_name: name, fee_type: 'fixed', amount: 0, remark: '' }]);
   };
 
   // 删除费用
@@ -568,27 +576,13 @@ export default function NewQuotePage() {
       key: 'fee_name',
       width: 160,
       render: (v: string, record: QuoteFee) => (
-        v === '其他' ? (
-          <Input
-            value={v}
-            onChange={(e) => updateFee(record.key, 'fee_name', e.target.value || '其他')}
-            size="middle"
-            style={{ width: '100%' }}
-            placeholder="请输入费用名称"
-          />
-        ) : (
-          <Select
-            value={v}
-            onChange={(val) => updateFee(record.key, 'fee_name', val)}
-            size="middle"
-            style={{ width: '100%' }}
-          >
-            <Option value="安装费">安装费</Option>
-            <Option value="运输费">运输费</Option>
-            <Option value="上楼费">上楼费</Option>
-            <Option value="其他">其他</Option>
-          </Select>
-        )
+        <Input
+          value={v}
+          onChange={(e) => updateFee(record.key, 'fee_name', e.target.value)}
+          size="middle"
+          style={{ width: '100%' }}
+          placeholder="请输入费用名称"
+        />
       ),    },
     {
       title: '计算方式',
@@ -900,9 +894,22 @@ export default function NewQuotePage() {
               </span>
             }
             extra={
-              <Button size="small" icon={<PlusOutlined />} onClick={addFee}>
-                添加费用
-              </Button>
+              <Dropdown open={showAddFeeMenu} onOpenChange={setShowAddFeeMenu} menu={{
+                items: [
+                  { key: 'install', label: '安装费' },
+                  { key: 'transport', label: '运输费' },
+                  { key: 'upstairs', label: '上楼费' },
+                  { key: 'custom', label: '自定义费用' },
+                ],
+                onClick: ({ key }) => {
+                  setShowAddFeeMenu(false);
+                  addFee(key);
+                },
+              }}>
+                <Button size="small" icon={<PlusOutlined />}>
+                  添加费用
+                </Button>
+              </Dropdown>
             }
             style={{ marginBottom: 16, borderRadius: 8, border: '1px solid #f0f0f0' }}
             bodyStyle={{ padding: '0' }}
@@ -942,8 +949,9 @@ export default function NewQuotePage() {
                       <InputNumber
                         value={discountAmount}
                         onChange={(val) => {
-                          setDiscountAmount(val || 0);
-                          calculateTotals(products, fees);
+                          const v = val || 0;
+                          setDiscountAmount(v);
+                          calculateTotals(products, fees, v);
                         }}
                         min={0} max={100} precision={2}
                         style={{ flex: 1 }}
@@ -954,8 +962,9 @@ export default function NewQuotePage() {
                     <InputNumber
                       value={discountAmount}
                       onChange={(val) => {
-                        setDiscountAmount(val || 0);
-                        calculateTotals(products, fees);
+                        const v = val || 0;
+                        setDiscountAmount(v);
+                        calculateTotals(products, fees, v);
                       }}
                       min={0} precision={2}
                       style={{ width: '100%' }}
