@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Table, Button, Tag, Space, Card, Typography, Select, message, Popconfirm, Modal, Divider, Input, DatePicker } from 'antd';
-import { EyeOutlined, CopyOutlined, SendOutlined, CheckCircleOutlined, DeleteOutlined, FilePdfOutlined, SearchOutlined } from '@ant-design/icons';
+import { EyeOutlined, CopyOutlined, SendOutlined, CheckCircleOutlined, DeleteOutlined, FilePdfOutlined, SearchOutlined, EditOutlined } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -127,6 +127,12 @@ export default function QuotesPage() {
     }
   };
 
+
+  // 编辑报价
+  const editQuote = async (quote) => {
+    router.push('/quote/edit?id=' + quote.id);
+  };
+
   // 删除报价
   const deleteQuote = async (id) => {
     try {
@@ -175,6 +181,7 @@ export default function QuotesPage() {
         <Space size="small">
           <Button type="link" icon={<EyeOutlined />} onClick={() => viewDetail(r)}>详情</Button>
           <Button type="link" icon={<CopyOutlined />} onClick={() => copyQuote(r)}>复制</Button>
+          <Button type="link" icon={<EditOutlined />} onClick={() => editQuote(r)}>编辑</Button>
           {r.status === 'draft' && (
             <>
               <Button type="link" icon={<SendOutlined />} onClick={() => updateStatus(r.id, 'sent', r.grand_total)}>发送</Button>
