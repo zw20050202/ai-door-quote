@@ -8,7 +8,7 @@ import {
 } from 'antd';
 import {
   ArrowLeftOutlined, PlusOutlined, DeleteOutlined, CheckOutlined, ReloadOutlined, SaveOutlined,
-  EditOutlined, UserOutlined, PhoneOutlined, EnvironmentOutlined, ImportOutlined, FileTextOutlined,
+  EditOutlined, UserOutlined, PhoneOutlined, EnvironmentOutlined, ImportOutlined, FileTextOutlined, CopyOutlined,
 } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
@@ -312,6 +312,17 @@ export default function EditQuotePage() {
     calculateTotals(newProducts, fees);
   };
 
+
+  // 复制产品
+  const copyProduct = (sourceKey: string) => {
+    const source = products.find(p => p.key === sourceKey);
+    if (!source) return;
+    const newKey = `prod_${Date.now()}`;
+    const newProduct = { ...source, key: newKey };
+    const newProducts = [...products, newProduct];
+    setProducts(newProducts);
+    calculateTotals(newProducts, fees);
+  };
   // 更新产品字段
   const updateProduct = (key: string, field: string, value: any) => {
     const newProducts = products.map(p => {
@@ -474,6 +485,7 @@ export default function EditQuotePage() {
       render: (_: any, record: QuoteProduct) => (
         <Space>
           <Button type="link" size="small" icon={<EditOutlined />} onClick={() => openEditModal(record.key)} />
+          <Button type="link" size="small" icon={<CopyOutlined />} onClick={() => copyProduct(record.key)} />
           <Button type="link" size="small" danger icon={<DeleteOutlined />} onClick={() => removeProduct(record.key)} />
         </Space>
       ),
